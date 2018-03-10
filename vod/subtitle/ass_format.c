@@ -43,13 +43,6 @@
 #define VALIGN_SUB 0
 #define VALIGN_CENTER 8
 #define VALIGN_TOP 4
-#define HALIGN_LEFT 1
-#define HALIGN_CENTER 2
-#define HALIGN_RIGHT 3
-#define ASS_JUSTIFY_AUTO 0
-#define ASS_JUSTIFY_LEFT 1
-#define ASS_JUSTIFY_CENTER 2
-#define ASS_JUSTIFY_RIGHT 3
 
 #define ASS_STYLES_ALLOC 20
 #define ASS_SIZE_MAX ((size_t)-1)
@@ -65,7 +58,7 @@
 #define NUM_OF_TAG_TYPES_RECOGNIZED  7
 
 
-#define TEMP_VERBOSITY
+//#define TEMP_VERBOSITY
 
 
 static const char* const tag_strings[] = {
@@ -760,7 +753,7 @@ typedef struct ass_track {
     char           *name;             // file name in case of external subs, 0 for streams
     ParserState     state;
 
-    long long       maxDuration;      // ms
+    long long       maxDuration;      // ms, added for needs of the vod-module
 
 } ass_track_t;
 
@@ -1046,7 +1039,6 @@ int numpad2align(int val)
         val = 2;
     else if (val < 0)
         val = -val;
-
     int res = ((val - 1) % 3) + 1;  // horizontal alignment
     if (val <= 3)
         res |= VALIGN_SUB;
@@ -1139,7 +1131,9 @@ static int process_style(ass_track_t *track, char *str)
             INTVAL(BorderStyle)
             INTVAL(Alignment)
             if (track->track_type == TRACK_TYPE_ASS)
+            {
                 target->Alignment = numpad2align(target->Alignment);
+            }
             // VSFilter compatibility
             else if (target->Alignment == 8)
                 target->Alignment = 3;
@@ -1614,10 +1608,6 @@ ass_parse_frames(
         return VOD_ALLOC_FAILED;
     }
 
-
-
-
-
     //allocate memory for the style's text string
     p = pfixed = vod_alloc(request_context->pool, MAX_STR_SIZE_ALL_WEBVTT_STYLES);
     if (p == NULL)
@@ -1629,6 +1619,28 @@ ass_parse_frames(
     }
     header->data              = (u_char*)pfixed;
     len = sizeof(WEBVTT_HEADER_NEWLINES) - 1; vod_memcpy(p, WEBVTT_HEADER_NEWLINES, len);  p+=len;
+    for (stylecounter = 0; stylecounter < ass_track->n_styles; stylecounter++)
+    {
+        ass_style_t* cur_style = ass_track->styles + stylecounter;
+
+        vod_memcpy(p, FIXED_WEBVTT_STYLE_START_STR, FIXED_WEBVTT_STYLE_START_WIDTH);           p+=FIXED_WEBVTT_STYLE_START_WIDTH;
+        len = vod_strlen(cur_style->Name); vod_sprintf((u_char*)p, cur_style->Name, len);      p+=len;
+        vod_memcpy(p, FIXED_WEBVTT_STYLE_END_STR, FIXED_WEBVTT_STYLE_END_WIDTH);               p+=FIXED_WEBVTT_STYLE_END_WIDTH;
+        vod_memcpy(p, FIXED_WEBVTT_BRACES_START_STR, FIXED_WEBVTT_BRACES_START_WIDTH);         p+=FIXED_WEBVTT_BRACES_START_WIDTH;
+
+        len = 8; vod_memcpy(p, "color: #", len);                                               p+=len;
+        vod_sprintf((u_char*)p, "%08uxD", cur_style->PrimaryColour);                           p+=8;
+        len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
+
+        len = 19; vod_memcpy(p, "background-color: #", len);                                   p+=len;
+        vod_sprintf((u_char*)p, "%08uxD", cur_style->BackColour);                              p+=8;
+        len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
+
+        vod_memcpy(p, FIXED_WEBVTT_BRACES_END_STR, FIXED_WEBVTT_BRACES_END_WIDTH);             p+=FIXED_WEBVTT_BRACES_END_WIDTH;
+        len = 2; vod_memcpy(p, "\r\n", len);                                                   p+=len;
+    }
+    header->len               = (size_t)(p - pfixed);
+
 /*typedef struct ass_style {
     char       *Name;
     char       *FontName;
@@ -1658,35 +1670,6 @@ ass_parse_frames(
     int         Justify;
 } ass_style_t;*/
 
-    // ignore first style, as it is just the "Default" added here by libass
-    for (stylecounter = 1; stylecounter < ass_track->n_styles; stylecounter++)
-    {
-        ass_style_t* cur_style = ass_track->styles + stylecounter;
-
-        vod_memcpy(p, FIXED_WEBVTT_STYLE_START_STR, FIXED_WEBVTT_STYLE_START_WIDTH);           p+=FIXED_WEBVTT_STYLE_START_WIDTH;
-        len = vod_strlen(cur_style->Name); vod_sprintf((u_char*)p, cur_style->Name, len);      p+=len;
-        vod_memcpy(p, FIXED_WEBVTT_STYLE_END_STR, FIXED_WEBVTT_STYLE_END_WIDTH);               p+=FIXED_WEBVTT_STYLE_END_WIDTH;
-        vod_memcpy(p, FIXED_WEBVTT_BRACES_START_STR, FIXED_WEBVTT_BRACES_START_WIDTH);         p+=FIXED_WEBVTT_BRACES_START_WIDTH;
-
-        len = 8; vod_memcpy(p, "color: #", len);                                               p+=len;
-        vod_sprintf((u_char*)p, "%08uxD", cur_style->PrimaryColour);                           p+=8;
-        len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
-
-        len = 19; vod_memcpy(p, "background-color: #", len);                                   p+=len;
-        vod_sprintf((u_char*)p, "%08uxD", cur_style->BackColour);                              p+=8;
-        len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
-
-        vod_memcpy(p, FIXED_WEBVTT_BRACES_END_STR, FIXED_WEBVTT_BRACES_END_WIDTH);             p+=FIXED_WEBVTT_BRACES_END_WIDTH;
-        len = 2; vod_memcpy(p, "\r\n", len);                                                   p+=len;
-    }
-    header->len               = (size_t)(p - pfixed);
-#ifdef  TEMP_VERBOSITY
-        vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-            "ass_parse_frames: header len = %d, string = %.30s\n", header->len, header->data);
-#endif
-
-
-
 
 
     for (evntcounter = 0; evntcounter < ass_track->n_events; evntcounter++)
@@ -1695,7 +1678,7 @@ ass_parse_frames(
         char*          event_textp[NUM_OF_TAGS_ALLOWED_PER_LINE];
         int            event_len  [NUM_OF_TAGS_ALLOWED_PER_LINE];
         int            event_mask [NUM_OF_TAGS_ALLOWED_PER_LINE];
-        int            tot_len_of_all_chunks = 0;
+        int            margL, margR, margV, sizeH; // all of these are integer percentage values
 
         ass_event_t*   prev_event = ass_track->events + evntcounter - 1;
                        cur_event  = ass_track->events + evntcounter;
@@ -1734,14 +1717,8 @@ ass_parse_frames(
             ass_free_track(request_context->pool, ass_track);
             return VOD_ALLOC_FAILED;
         }
-        for (chunkcounter = 0; chunkcounter < num_chunks_in_text; chunkcounter++)
-        {
-            tot_len_of_all_chunks += event_len[chunkcounter];
-            if (event_mask[chunkcounter] & 1)
-                tot_len_of_all_chunks += 2;
-        }
         // allocate the text of output frame
-        p = pfixed = vod_alloc(request_context->pool, FIXED_WEBVTT_CUE_NAME_WIDTH + 8 + tot_len_of_all_chunks);
+        p = pfixed = vod_alloc(request_context->pool, 1024);
         if (p == NULL)
         {
             vod_log_error(VOD_LOG_ERR, request_context->log, 0,
@@ -1754,7 +1731,41 @@ ass_parse_frames(
         vod_sprintf((u_char*)p, FIXED_WEBVTT_CUE_FORMAT_STR, evntcounter);      p+=FIXED_WEBVTT_CUE_NAME_WIDTH;
         vod_memset(p, '\r', 1);                                                 p++;
         vod_memset(p, '\n', 1);                                                 p++;
-        // timestamps will be inserted here
+        // timestamps will be inserted here, we now insert positioning and alignment changes
+        {
+            ass_style_t* cur_style = ass_track->styles + cur_event->Style; //cur_event->Style will be zero for an unknown Style name
+            margL = ((cur_event->MarginL > 0) ? cur_event->MarginL : cur_style->MarginL) * 100 / ass_track->PlayResX;
+            margR = (ass_track->PlayResX - ((cur_event->MarginR > 0) ? cur_event->MarginR : cur_style->MarginR)) * 100 / ass_track->PlayResX;
+            margV = ((cur_event->MarginV > 0) ? cur_event->MarginV : cur_style->MarginV) * 100 / ass_track->PlayResY;
+            if (margL || margR || margV)
+            {
+                sizeH = margR - margL;
+                if (sizeH < 0) sizeH = 50;
+                if (cur_style->Alignment <= 3)      //bottom Alignment
+                    margV = 100 - margV;
+                else if (cur_style->Alignment >= 9) //middle Alignment
+                    margV = 50;
+#ifdef  TEMP_VERBOSITY
+                vod_log_error(VOD_LOG_ERR, request_context->log, 0,
+                    "size=%d, L=%d, R=%d, V=%d, align=%d", sizeH, margL, margR, margV, cur_style->Alignment);
+#endif
+                len = 10; vod_memcpy(p, " position:", len);                     p+=len;
+                vod_sprintf((u_char*)p, "%03uD", margL);                        p+=3;
+                len =  7; vod_memcpy(p, "% size:", len);                        p+=len;
+                vod_sprintf((u_char*)p, "%03uD", sizeH);                        p+=3;
+                len =  7; vod_memcpy(p, "% line:", len);                        p+=len;
+                vod_sprintf((u_char*)p, "%03uD", margV);                        p+=3;
+                len =  8; vod_memcpy(p, "% align:", len);                       p+=len;
+                if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
+                    len =  6; vod_memcpy(p, "center", len);                     p+=len;
+                } else if (((cur_style->Alignment - 1) & 3) == 0) { //left   Alignment  1/5/9
+                    len =  4; vod_memcpy(p, "left", len);                       p+=len;
+                } else {                                            //right  Alignment  3/7/11
+                    len =  5; vod_memcpy(p, "right", len);                      p+=len;
+                }
+            }
+        }
+
         vod_memset(p, '\r', 1);                                                 p++;
         vod_memset(p, '\n', 1);                                                 p++;
         for (chunkcounter = 0; chunkcounter < num_chunks_in_text; chunkcounter++)
@@ -1781,14 +1792,13 @@ ass_parse_frames(
         // - pts_delay = end time - start time = duration this subtitle event is on screen
 
         cur_frame->offset    = (uintptr_t)pfixed;
-        cur_frame->size      = FIXED_WEBVTT_CUE_NAME_WIDTH + 8 + tot_len_of_all_chunks;
+        cur_frame->size      = (uint32_t)(p - pfixed);
         cur_frame->key_frame = FIXED_WEBVTT_CUE_NAME_WIDTH + 2; // cue name + \r\n
         cur_frame->pts_delay = cur_event->End - cur_event->Start;
         if (evntcounter == 0)
         {
             vtt_track->first_frame_time_offset = cur_event->Start;
         }
-        // TODO: We can insert a ::cue for each event
 
         vtt_track->total_frames_duration = cur_event->End - vtt_track->first_frame_time_offset;
         vtt_track->total_frames_size += cur_frame->size;
