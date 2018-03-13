@@ -1620,6 +1620,8 @@ ass_parse_frames(
         ass_free_track(request_context->pool, ass_track);
         return VOD_ALLOC_FAILED;
     }
+
+    // We now insert header and all Style definitions
     header->data              = (u_char*)pfixed;
     len = sizeof(WEBVTT_HEADER_NEWLINES) - 1; vod_memcpy(p, WEBVTT_HEADER_NEWLINES, len);  p+=len;
     for (stylecounter = 0; stylecounter < ass_track->n_styles; stylecounter++)
@@ -1632,8 +1634,7 @@ ass_parse_frames(
         vod_memcpy(p, FIXED_WEBVTT_BRACES_START_STR, FIXED_WEBVTT_BRACES_START_WIDTH);         p+=FIXED_WEBVTT_BRACES_START_WIDTH;
 
         len = 8; vod_memcpy(p, "color: #", len);                                               p+=len;
-        vod_sprintf((u_char*)p, "%08uxD", cur_style->PrimaryColour);                           p+=8;
-        len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
+        vod_sprintf((u_char*)p, "%08uxD;\r\n", cur_style->PrimaryColour);                      p+=11;
 
 
         len = 6; vod_memcpy(p, "font: ", len);                                                 p+=len;
@@ -1644,63 +1645,38 @@ ass_parse_frames(
         if (cur_style->Italic) {
              len = 7; vod_memcpy(p, " italic", len);                                           p+=len;
         }
-        vod_sprintf((u_char*)p, " %03uDpx, sans-serif", cur_style->FontSize);                  p+=18;
-        len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
+        vod_sprintf((u_char*)p, " %03uDpx, sans-serif;\r\n", cur_style->FontSize);             p+=21;
 
+        // This will inherit the OutlineColour (and shadow) if BorderStyle==1, otherwise it inherits PrimaryColour
         if (cur_style->Underline) {
-            // This will inherit the OutlineColour (and shadow) if BorderStyle==1, otherwise it inherits PrimaryColour
-            len = 36; vod_memcpy(p, " text-decoration: solid underline;\r\n", len);            p+=len;
+            // available styles are: solid | double | dotted | dashed | wavy
+            // available lines are: underline || overline || line-through || blink
+            len = 35; vod_memcpy(p, "text-decoration: solid underline;\r\n", len);             p+=len;
         }
+        else if (cur_style->StrikeOut) {
+            // available lines are: underline || overline || line-through || blink
+            len = 38; vod_memcpy(p, "text-decoration: solid line-through;\r\n", len);          p+=len;
+        }
+
         if (cur_style->BorderStyle == 1 /*&& ass_track->type == TRACK_TYPE_ASS*/)
         {
             len = 22; vod_memcpy(p, "-webkit-text-stroke: #", len);                            p+=len;
-            vod_sprintf((u_char*)p, "%08uxD %01uDpx", cur_style->OutlineColour, cur_style->Outline); p+=13;
-            len = 3; vod_memcpy(p, ";\r\n", len);                                              p+=len;
+            vod_sprintf((u_char*)p, "%08uxD %01uDpx;\r\n", cur_style->OutlineColour, cur_style->Outline); p+=15;
 
             len = 14; vod_memcpy(p, "text-shadow: #", len);                                    p+=len;
-            vod_sprintf((u_char*)p, "%08uxD %01uDpx %01uDpx 0px", //* always very sharp non-blurred shadows */
-                         cur_style->BackColour, cur_style->Shadow, cur_style->Shadow);         p+=20;
+            vod_sprintf((u_char*)p, "%08uxD %01uDpx %01uDpx 0px;\r\n", //* always very sharp non-blurred shadows */
+                         cur_style->BackColour, cur_style->Shadow, cur_style->Shadow);         p+=23;
         } else {
             len = 19; vod_memcpy(p, "background-color: #", len);                               p+=len;
-            vod_sprintf((u_char*)p, "%08uxD", cur_style->BackColour);                          p+=8;
+            vod_sprintf((u_char*)p, "%08uxD;\r\n", cur_style->BackColour);                     p+=11;
         }
-        len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
 
         vod_memcpy(p, FIXED_WEBVTT_BRACES_END_STR, FIXED_WEBVTT_BRACES_END_WIDTH);             p+=FIXED_WEBVTT_BRACES_END_WIDTH;
         len = 2; vod_memcpy(p, "\r\n", len);                                                   p+=len;
     }
     header->len               = (size_t)(p - pfixed);
 
-/*typedef struct ass_style {
-    char       *Name;     --------
-    char       *FontName; ---------
-    int         FontSize; -----------
-    uint32_t    PrimaryColour;--------
-    uint32_t    SecondaryColour;
-    uint32_t    OutlineColour;----------
-    uint32_t    BackColour;--------------
-    int         Bold;---------------
-    int         Italic;------------
-    int         Underline;
-    int         StrikeOut;
-    double      ScaleX;
-    double      ScaleY;
-    double      Spacing;
-    double      Angle;
-    int         BorderStyle;-----------
-    int         Outline;--------------
-    int         Shadow;-----------------
-    int         Alignment;-------------
-    int         MarginL;-------------
-    int         MarginR;----------
-    int         MarginV;--------------
-    int         Encoding;
-    int         treat_fontname_as_pattern;
-    int         Justify;
-} ass_style_t;*/
-
-
-
+    // We now insert all cues that include their positioning info
     for (evntcounter = 0; evntcounter < ass_track->n_events; evntcounter++)
     {
         // Split the event text into multiple chunks so we can insert each chunk as a separate frame in webVTT, all under a single cue
