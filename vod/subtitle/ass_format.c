@@ -39,6 +39,10 @@
 #define FIXED_WEBVTT_BRACES_START_STR "{\r\n"
 #define FIXED_WEBVTT_BRACES_END_WIDTH 3
 #define FIXED_WEBVTT_BRACES_END_STR "}\r\n"
+#define FIXED_WEBVTT_VOICE_START_STR  "<v "
+#define FIXED_WEBVTT_VOICE_START_WIDTH  3
+#define FIXED_WEBVTT_VOICE_END_STR  ">"
+#define FIXED_WEBVTT_VOICE_END_WIDTH  1
 
 #define VALIGN_SUB 0
 #define VALIGN_CENTER 8
@@ -664,7 +668,7 @@ char parse_bool(char *str)
 typedef struct ass_style {
     char       *Name;
     char       *FontName;
-    double      FontSize;
+    int         FontSize;
     uint32_t    PrimaryColour;
     uint32_t    SecondaryColour;
     uint32_t    OutlineColour;
@@ -678,15 +682,14 @@ typedef struct ass_style {
     double      Spacing;
     double      Angle;
     int         BorderStyle;
-    double      Outline;
-    double      Shadow;
+    int         Outline;
+    int         Shadow;
     int         Alignment;
     int         MarginL;
     int         MarginR;
     int         MarginV;
     int         Encoding;
     int         treat_fontname_as_pattern;
-    double      Blur;
     int         Justify;
 } ass_style_t;
 
@@ -1121,7 +1124,7 @@ static int process_style(ass_track_t *track, char *str)
             // this will destroy SSA's TertiaryColour, but i'm not going to use it anyway
             if (track->track_type == TRACK_TYPE_SSA)
                 target->OutlineColour = target->BackColour;
-            FPVAL(FontSize)
+            INTVAL(FontSize)
             INTVAL(Bold)
             INTVAL(Italic)
             INTVAL(Underline)
@@ -1145,15 +1148,15 @@ static int process_style(ass_track_t *track, char *str)
             INTVAL(Encoding)
             FPVAL(ScaleX)
             FPVAL(ScaleY)
-            FPVAL(Outline)
-            FPVAL(Shadow)
+            INTVAL(Outline)
+            INTVAL(Shadow)
         PARSE_END
     }
     style->ScaleX = FFMAX(style->ScaleX, 0.) / 100.;
     style->ScaleY = FFMAX(style->ScaleY, 0.) / 100.;
     style->Spacing = FFMAX(style->Spacing, 0.);
-    style->Outline = FFMAX(style->Outline, 0.);
-    style->Shadow = FFMAX(style->Shadow, 0.);
+    style->Outline = FFMAX(style->Outline, 0);
+    style->Shadow = FFMAX(style->Shadow, 0);
     style->Bold = !!style->Bold;
     style->Italic = !!style->Italic;
     style->Underline = !!style->Underline;
@@ -1624,7 +1627,7 @@ ass_parse_frames(
         ass_style_t* cur_style = ass_track->styles + stylecounter;
 
         vod_memcpy(p, FIXED_WEBVTT_STYLE_START_STR, FIXED_WEBVTT_STYLE_START_WIDTH);           p+=FIXED_WEBVTT_STYLE_START_WIDTH;
-        len = vod_strlen(cur_style->Name); vod_sprintf((u_char*)p, cur_style->Name, len);      p+=len;
+        len = vod_strlen(cur_style->Name); vod_memcpy(p, cur_style->Name, len);                p+=len;
         vod_memcpy(p, FIXED_WEBVTT_STYLE_END_STR, FIXED_WEBVTT_STYLE_END_WIDTH);               p+=FIXED_WEBVTT_STYLE_END_WIDTH;
         vod_memcpy(p, FIXED_WEBVTT_BRACES_START_STR, FIXED_WEBVTT_BRACES_START_WIDTH);         p+=FIXED_WEBVTT_BRACES_START_WIDTH;
 
@@ -1632,8 +1635,35 @@ ass_parse_frames(
         vod_sprintf((u_char*)p, "%08uxD", cur_style->PrimaryColour);                           p+=8;
         len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
 
-        len = 19; vod_memcpy(p, "background-color: #", len);                                   p+=len;
-        vod_sprintf((u_char*)p, "%08uxD", cur_style->BackColour);                              p+=8;
+
+        len = 6; vod_memcpy(p, "font: ", len);                                                 p+=len;
+        len = vod_strlen(cur_style->FontName); vod_memcpy(p, cur_style->FontName, len);        p+=len;
+        if (cur_style->Bold) {
+             len = 5; vod_memcpy(p, " bold", len);                                             p+=len;
+        }
+        if (cur_style->Italic) {
+             len = 7; vod_memcpy(p, " italic", len);                                           p+=len;
+        }
+        vod_sprintf((u_char*)p, " %03uDpx, sans-serif", cur_style->FontSize);                  p+=18;
+        len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
+
+        if (cur_style->Underline) {
+            // This will inherit the OutlineColour (and shadow) if BorderStyle==1, otherwise it inherits PrimaryColour
+            len = 36; vod_memcpy(p, " text-decoration: solid underline;\r\n", len);            p+=len;
+        }
+        if (cur_style->BorderStyle == 1 /*&& ass_track->type == TRACK_TYPE_ASS*/)
+        {
+            len = 22; vod_memcpy(p, "-webkit-text-stroke: #", len);                            p+=len;
+            vod_sprintf((u_char*)p, "%08uxD %01uDpx", cur_style->OutlineColour, cur_style->Outline); p+=13;
+            len = 3; vod_memcpy(p, ";\r\n", len);                                              p+=len;
+
+            len = 14; vod_memcpy(p, "text-shadow: #", len);                                    p+=len;
+            vod_sprintf((u_char*)p, "%08uxD %01uDpx %01uDpx 0px", //* always very sharp non-blurred shadows */
+                         cur_style->BackColour, cur_style->Shadow, cur_style->Shadow);         p+=20;
+        } else {
+            len = 19; vod_memcpy(p, "background-color: #", len);                               p+=len;
+            vod_sprintf((u_char*)p, "%08uxD", cur_style->BackColour);                          p+=8;
+        }
         len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
 
         vod_memcpy(p, FIXED_WEBVTT_BRACES_END_STR, FIXED_WEBVTT_BRACES_END_WIDTH);             p+=FIXED_WEBVTT_BRACES_END_WIDTH;
@@ -1642,31 +1672,30 @@ ass_parse_frames(
     header->len               = (size_t)(p - pfixed);
 
 /*typedef struct ass_style {
-    char       *Name;
-    char       *FontName;
-    double      FontSize;
-    uint32_t    PrimaryColour;
+    char       *Name;     --------
+    char       *FontName; ---------
+    int         FontSize; -----------
+    uint32_t    PrimaryColour;--------
     uint32_t    SecondaryColour;
-    uint32_t    OutlineColour;
-    uint32_t    BackColour;
-    int         Bold;
-    int         Italic;
+    uint32_t    OutlineColour;----------
+    uint32_t    BackColour;--------------
+    int         Bold;---------------
+    int         Italic;------------
     int         Underline;
     int         StrikeOut;
     double      ScaleX;
     double      ScaleY;
     double      Spacing;
     double      Angle;
-    int         BorderStyle;
-    double      Outline;
-    double      Shadow;
-    int         Alignment;
-    int         MarginL;
-    int         MarginR;
-    int         MarginV;
+    int         BorderStyle;-----------
+    int         Outline;--------------
+    int         Shadow;-----------------
+    int         Alignment;-------------
+    int         MarginL;-------------
+    int         MarginR;----------
+    int         MarginV;--------------
     int         Encoding;
     int         treat_fontname_as_pattern;
-    double      Blur;
     int         Justify;
 } ass_style_t;*/
 
@@ -1736,15 +1765,15 @@ ass_parse_frames(
             ass_style_t* cur_style = ass_track->styles + cur_event->Style; //cur_event->Style will be zero for an unknown Style name
             margL = ((cur_event->MarginL > 0) ? cur_event->MarginL : cur_style->MarginL) * 100 / ass_track->PlayResX;
             margR = (ass_track->PlayResX - ((cur_event->MarginR > 0) ? cur_event->MarginR : cur_style->MarginR)) * 100 / ass_track->PlayResX;
-            margV = ((cur_event->MarginV > 0) ? cur_event->MarginV : cur_style->MarginV) * 100 / ass_track->PlayResY;
+            margV = ((cur_event->MarginV > 0) ? cur_event->MarginV : cur_style->MarginV) * 100 / ass_track->PlayResY; // top assumed
             if (margL || margR || margV)
             {
                 sizeH = margR - margL;
                 if (sizeH < 0) sizeH = 50;
-                if (cur_style->Alignment <= 3)      //bottom Alignment
-                    margV = 100 - margV;
-                else if (cur_style->Alignment >= 9) //middle Alignment
+                if (cur_style->Alignment >= VALIGN_CENTER)   //middle Alignment  for values 9,10,11
                     margV = 50;
+                else if (cur_style->Alignment < VALIGN_TOP)  //bottom Alignment  for values 1, 2, 3
+                    margV = 100 - margV;
 #ifdef  TEMP_VERBOSITY
                 vod_log_error(VOD_LOG_ERR, request_context->log, 0,
                     "size=%d, L=%d, R=%d, V=%d, align=%d", sizeH, margL, margR, margV, cur_style->Alignment);
@@ -1764,10 +1793,15 @@ ass_parse_frames(
                     len =  5; vod_memcpy(p, "right", len);                      p+=len;
                 }
             }
+            vod_memset(p, '\r', 1);                                                 p++;
+            vod_memset(p, '\n', 1);                                                 p++;
+            // TODO: insert voice span here
+            vod_memcpy(p, FIXED_WEBVTT_VOICE_START_STR, FIXED_WEBVTT_VOICE_START_WIDTH);       p+=FIXED_WEBVTT_VOICE_START_WIDTH;
+            len = vod_strlen(cur_style->Name); vod_sprintf((u_char*)p, cur_style->Name, len);  p+=len;
+            vod_memcpy(p, FIXED_WEBVTT_VOICE_END_STR, FIXED_WEBVTT_VOICE_END_WIDTH);           p+=FIXED_WEBVTT_VOICE_END_WIDTH;
         }
 
-        vod_memset(p, '\r', 1);                                                 p++;
-        vod_memset(p, '\n', 1);                                                 p++;
+
         for (chunkcounter = 0; chunkcounter < num_chunks_in_text; chunkcounter++)
         {
             if (event_mask[chunkcounter] & 1)
