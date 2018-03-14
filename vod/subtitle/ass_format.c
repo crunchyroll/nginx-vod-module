@@ -44,6 +44,23 @@
 #define FIXED_WEBVTT_VOICE_END_STR  ">"
 #define FIXED_WEBVTT_VOICE_END_WIDTH  1
 
+#define FIXED_WEBVTT_CLASS_NOITALIC  "STYLE\r\n::cue(.noitalic) {\r\nfont-style: normal;\r\n}\r\n\r\n"
+#define FIXED_WEBVTT_CLASS_NOITALIC_WIDTH  53
+#define FIXED_WEBVTT_CLASS_ITALIC    "STYLE\r\n::cue(.italic) {\r\nfont-style: italic;\r\n}\r\n\r\n"
+#define FIXED_WEBVTT_CLASS_ITALIC_WIDTH  51
+#define FIXED_WEBVTT_CLASS_NOBOLD    "STYLE\r\n::cue(.nobold) {\r\nfont-weight: normal;\r\n}\r\n\r\n"
+#define FIXED_WEBVTT_CLASS_NOBOLD_WIDTH  52
+#define FIXED_WEBVTT_CLASS_BOLD      "STYLE\r\n::cue(.bold) {\r\nfont-weight: bold;\r\n}\r\n\r\n"
+#define FIXED_WEBVTT_CLASS_BOLD_WIDTH  48
+#define FIXED_WEBVTT_CLASS_NOUNDER    "STYLE\r\n::cue(.nounder) {\r\ntext-decoration: none;\r\n}\r\n\r\n"
+#define FIXED_WEBVTT_CLASS_NOUNDER_WIDTH  55
+#define FIXED_WEBVTT_CLASS_UNDER      "STYLE\r\n::cue(.under) {\r\ntext-decoration: solid underline;\r\n}\r\n\r\n"
+#define FIXED_WEBVTT_CLASS_UNDER_WIDTH  64
+#define FIXED_WEBVTT_CLASS_NOSTRIKE    "STYLE\r\n::cue(.nostrike) {\r\ntext-decoration: none;\r\n}\r\n\r\n"
+#define FIXED_WEBVTT_CLASS_NOSTRIKE_WIDTH  55
+#define FIXED_WEBVTT_CLASS_STRIKE      "STYLE\r\n::cue(.strike) {\r\ntext-decoration: solid line-through;\r\n}\r\n\r\n"
+#define FIXED_WEBVTT_CLASS_STRIKE_WIDTH  68
+
 #define VALIGN_SUB 0
 #define VALIGN_CENTER 8
 #define VALIGN_TOP 4
@@ -1676,7 +1693,17 @@ ass_parse_frames(
         vod_memcpy(p, FIXED_WEBVTT_BRACES_END_STR, FIXED_WEBVTT_BRACES_END_WIDTH);             p+=FIXED_WEBVTT_BRACES_END_WIDTH;
         len = 2; vod_memcpy(p, "\r\n", len);                                                   p+=len;
     }
+    //Now insert the noxxxx versions of the same style
+    vod_memcpy(p, FIXED_WEBVTT_CLASS_NOBOLD,   FIXED_WEBVTT_CLASS_NOBOLD_WIDTH);   p+=FIXED_WEBVTT_CLASS_NOBOLD_WIDTH;
+    vod_memcpy(p, FIXED_WEBVTT_CLASS_BOLD,     FIXED_WEBVTT_CLASS_BOLD_WIDTH);     p+=FIXED_WEBVTT_CLASS_BOLD_WIDTH;
+    vod_memcpy(p, FIXED_WEBVTT_CLASS_NOITALIC, FIXED_WEBVTT_CLASS_NOITALIC_WIDTH); p+=FIXED_WEBVTT_CLASS_NOITALIC_WIDTH;
+    vod_memcpy(p, FIXED_WEBVTT_CLASS_ITALIC,   FIXED_WEBVTT_CLASS_ITALIC_WIDTH);   p+=FIXED_WEBVTT_CLASS_ITALIC_WIDTH;
+    vod_memcpy(p, FIXED_WEBVTT_CLASS_NOUNDER,  FIXED_WEBVTT_CLASS_NOUNDER_WIDTH);  p+=FIXED_WEBVTT_CLASS_NOUNDER_WIDTH;
+    vod_memcpy(p, FIXED_WEBVTT_CLASS_UNDER,    FIXED_WEBVTT_CLASS_UNDER_WIDTH);    p+=FIXED_WEBVTT_CLASS_UNDER_WIDTH;
+    vod_memcpy(p, FIXED_WEBVTT_CLASS_NOSTRIKE, FIXED_WEBVTT_CLASS_NOSTRIKE_WIDTH); p+=FIXED_WEBVTT_CLASS_NOSTRIKE_WIDTH;
+    vod_memcpy(p, FIXED_WEBVTT_CLASS_STRIKE,   FIXED_WEBVTT_CLASS_STRIKE_WIDTH);   p+=FIXED_WEBVTT_CLASS_STRIKE_WIDTH;
     header->len               = (size_t)(p - pfixed);
+
 
     // We now insert all cues that include their positioning info
     for (evntcounter = 0; evntcounter < ass_track->n_events; evntcounter++)
