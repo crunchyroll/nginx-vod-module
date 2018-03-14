@@ -43,6 +43,9 @@
 #define FIXED_WEBVTT_VOICE_START_WIDTH  3
 #define FIXED_WEBVTT_VOICE_END_STR  ">"
 #define FIXED_WEBVTT_VOICE_END_WIDTH  1
+#define FIXED_WEBVTT_VOICE_SPANEND_STR  "</v>"
+#define FIXED_WEBVTT_VOICE_SPANEND_WIDTH  4
+
 
 #define FIXED_WEBVTT_CLASS_NOITALIC  "STYLE\r\n::cue(.noitalic) {\r\nfont-style: normal;\r\n}\r\n\r\n"
 #define FIXED_WEBVTT_CLASS_NOITALIC_WIDTH  53
@@ -57,7 +60,7 @@
 #define FIXED_WEBVTT_CLASS_UNDER      "STYLE\r\n::cue(.under) {\r\ntext-decoration: solid underline;\r\n}\r\n\r\n"
 #define FIXED_WEBVTT_CLASS_UNDER_WIDTH  64
 #define FIXED_WEBVTT_CLASS_NOSTRIKE    "STYLE\r\n::cue(.nostrike) {\r\ntext-decoration: none;\r\n}\r\n\r\n"
-#define FIXED_WEBVTT_CLASS_NOSTRIKE_WIDTH  55
+#define FIXED_WEBVTT_CLASS_NOSTRIKE_WIDTH  56
 #define FIXED_WEBVTT_CLASS_STRIKE      "STYLE\r\n::cue(.strike) {\r\ntext-decoration: solid line-through;\r\n}\r\n\r\n"
 #define FIXED_WEBVTT_CLASS_STRIKE_WIDTH  68
 
@@ -769,7 +772,7 @@ typedef struct ass_track {
     int             Kerning;
     char           *Language;
 
-    int             default_style;    // index of default style
+    int             default_style;    // index of default style, defaults to zero
     char           *name;             // file name in case of external subs, 0 for streams
     ParserState     state;
 
@@ -1641,7 +1644,7 @@ ass_parse_frames(
     // We now insert header and all Style definitions
     header->data              = (u_char*)pfixed;
     len = sizeof(WEBVTT_HEADER_NEWLINES) - 1; vod_memcpy(p, WEBVTT_HEADER_NEWLINES, len);  p+=len;
-    for (stylecounter = 0; stylecounter < ass_track->n_styles; stylecounter++)
+    for (stylecounter = (ass_track->default_style ? 1 : 0); stylecounter < ass_track->n_styles; stylecounter++)
     {
         ass_style_t* cur_style = ass_track->styles + stylecounter;
 
@@ -1763,8 +1766,7 @@ ass_parse_frames(
 
         // Cues are named "c<iteration_number_in_7_digits>" starting from c0000000
         vod_sprintf((u_char*)p, FIXED_WEBVTT_CUE_FORMAT_STR, evntcounter);      p+=FIXED_WEBVTT_CUE_NAME_WIDTH;
-        vod_memset(p, '\r', 1);                                                 p++;
-        vod_memset(p, '\n', 1);                                                 p++;
+        len = 2; vod_memcpy(p, "\r\n", len);                                    p+=len;
         // timestamps will be inserted here, we now insert positioning and alignment changes
         {
             ass_style_t* cur_style = ass_track->styles + cur_event->Style; //cur_event->Style will be zero for an unknown Style name
@@ -1798,9 +1800,8 @@ ass_parse_frames(
                     len =  5; vod_memcpy(p, "right", len);                      p+=len;
                 }
             }
-            vod_memset(p, '\r', 1);                                                 p++;
-            vod_memset(p, '\n', 1);                                                 p++;
-            // TODO: insert voice span here
+            len = 2; vod_memcpy(p, "\r\n", len);                                p+=len;
+
             vod_memcpy(p, FIXED_WEBVTT_VOICE_START_STR, FIXED_WEBVTT_VOICE_START_WIDTH);       p+=FIXED_WEBVTT_VOICE_START_WIDTH;
             len = vod_strlen(cur_style->Name); vod_sprintf((u_char*)p, cur_style->Name, len);  p+=len;
             vod_memcpy(p, FIXED_WEBVTT_VOICE_END_STR, FIXED_WEBVTT_VOICE_END_WIDTH);           p+=FIXED_WEBVTT_VOICE_END_WIDTH;
@@ -1811,16 +1812,14 @@ ass_parse_frames(
         {
             if (event_mask[chunkcounter] & 1)
             {
-                vod_memset(p, '\r', 1);                                         p++;
-                vod_memset(p, '\n', 1);                                         p++;
+                len = 2; vod_memcpy(p, "\r\n", len);                            p+=len;
             }
             vod_memcpy(p, event_textp[chunkcounter], event_len[chunkcounter]);  p+=event_len[chunkcounter];
         }
-        vod_memset(p, '\r', 1);                                                 p++;
-        vod_memset(p, '\n', 1);                                                 p++;
+        vod_memcpy(p, FIXED_WEBVTT_VOICE_SPANEND_STR, FIXED_WEBVTT_VOICE_SPANEND_WIDTH);       p+=FIXED_WEBVTT_VOICE_SPANEND_WIDTH;
+        len = 2; vod_memcpy(p, "\r\n", len);                                    p+=len;
         // we still need an empty line after each event/cue
-        vod_memset(p, '\r', 1);                                                 p++;
-        vod_memset(p, '\n', 1);                                                 p++;
+        len = 2; vod_memcpy(p, "\r\n", len);                                    p+=len;
 
 
         // Note: mapping of cue into input_frame_t:
