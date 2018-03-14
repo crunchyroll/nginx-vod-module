@@ -1637,16 +1637,18 @@ ass_parse_frames(
         vod_sprintf((u_char*)p, "%08uxD;\r\n", cur_style->PrimaryColour);                      p+=11;
 
 
-        len = 6; vod_memcpy(p, "font: ", len);                                                 p+=len;
+        len = 14; vod_memcpy(p, "font-family: \"", len);                                       p+=len;
         len = vod_strlen(cur_style->FontName); vod_memcpy(p, cur_style->FontName, len);        p+=len;
+        len = 16; vod_memcpy(p, "\", sans-serif;\r\n", len);                                   p+=len;
+        vod_sprintf((u_char*)p, "font-size: %03uDpx;\r\n", cur_style->FontSize);               p+=19;
+
+
         if (cur_style->Bold) {
-             len = 5; vod_memcpy(p, " bold", len);                                             p+=len;
+            len = 20; vod_memcpy(p, "font-weight: bold;\r\n", len);                            p+=len;
         }
         if (cur_style->Italic) {
-             len = 7; vod_memcpy(p, " italic", len);                                           p+=len;
+            len = 21; vod_memcpy(p, "font-style: italic;\r\n", len);                           p+=len;
         }
-        vod_sprintf((u_char*)p, " %03uDpx, sans-serif;\r\n", cur_style->FontSize);             p+=21;
-
         // This will inherit the OutlineColour (and shadow) if BorderStyle==1, otherwise it inherits PrimaryColour
         if (cur_style->Underline) {
             // available styles are: solid | double | dotted | dashed | wavy
