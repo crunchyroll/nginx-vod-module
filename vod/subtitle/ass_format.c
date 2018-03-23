@@ -92,8 +92,8 @@ typedef enum {
     TAG_TYPE_SMALLERTHAN    = 3,
     TAG_TYPE_BIGGERTHAN     = 4,
 
-	TAG_TYPE_OPEN_BRACES    = 5,
-	TAG_TYPE_CLOSE_BRACES   = 6,
+    TAG_TYPE_OPEN_BRACES    = 5,
+    TAG_TYPE_CLOSE_BRACES   = 6,
 
     TAG_TYPE_ITALIC_END     = 7,
     TAG_TYPE_ITALIC_START   = 8,
@@ -145,23 +145,23 @@ static const int tag_string_len[TAG_TYPE_NONE][2] = {
     {1,0}
 };
 static const char* tag_replacement_strings[TAG_TYPE_NONE] = {
-	"\r\n",
-	"\r\n",
-	"&amp;",
-	"&lt;",
-	"&gt;",
+    "\r\n",
+    "\r\n",
+    "&amp;",
+    "&lt;",
+    "&gt;",
 
-	"",
-	"",
+    "",
+    "",
 
-	"</i>",
-	"<i>",
-	"</b>",
-	"<b>",
+    "</i>",
+    "<i>",
+    "</b>",
+    "<b>",
     "</u>",
     "<u>",
 
-	""
+    ""
 };
 
 
@@ -1440,16 +1440,13 @@ static ass_track_t *parse_memory(char *buf, int len, request_context_t* request_
 
 void ass_add_biu_ends(uint32_t* finalstring, ass_tag_idx_t targetidx, int badd)
 {
-    static int count = 0;
-    if (badd && (count<3))
+    if (badd)
     {
-        count++;
         *finalstring <<= 8;
         *finalstring |= (uint32_t)(targetidx);
     }
     else
     {
-        count--;
         *finalstring >>= 8;
     }
     return;
@@ -1866,9 +1863,9 @@ ass_parse_frames(
     ass_track_t *ass_track;
     vod_array_t frames;
     int evntcounter, chunkcounter;
-#ifdef ASSUME_STYLE_SUPPORT
-    int stylecounter;
-#endif
+//#ifdef ASSUME_STYLE_SUPPORT
+//    int stylecounter;
+//#endif
     subtitle_base_metadata_t* metadata
                               = vod_container_of(base, subtitle_base_metadata_t, base);
     vod_str_t*     source     = &metadata->source;
@@ -1931,6 +1928,7 @@ ass_parse_frames(
     header->data              = (u_char*)pfixed;
     len = sizeof(WEBVTT_HEADER_NEWLINES) - 1; vod_memcpy(p, WEBVTT_HEADER_NEWLINES, len);  p+=len;
 #ifdef ASSUME_STYLE_SUPPORT
+    int stylecounter;
     for (stylecounter = (ass_track->default_style ? 1 : 0); stylecounter < ass_track->n_styles; stylecounter++)
     {
         ass_style_t* cur_style = ass_track->styles + stylecounter;
