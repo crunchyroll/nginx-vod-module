@@ -1880,6 +1880,7 @@ ass_parse_frames(
     result->total_track_count = 1;
 
     vtt_track->first_frame_index = 0;
+    vtt_track->total_frames_size = 0;
 
     if ((parse_params->parse_type & (PARSE_FLAG_FRAMES_ALL | PARSE_FLAG_EXTRA_DATA | PARSE_FLAG_EXTRA_DATA_SIZE)) == 0)
     {
