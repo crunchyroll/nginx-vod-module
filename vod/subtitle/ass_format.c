@@ -79,9 +79,9 @@
 #define FFMIN(a,b) ((a) > (b) ? (b) : (a))
 #define FFMINMAX(c,a,b) FFMIN(FFMAX(c, a), b)
 
-#define NUM_OF_TAGS_ALLOWED_PER_LINE 3
+#define NUM_OF_TAGS_ALLOWED_PER_LINE 1
 
-#define TEMP_VERBOSITY
+//#define TEMP_VERBOSITY
 #define ASSUME_STYLE_SUPPORT
 
 typedef enum {
@@ -129,8 +129,8 @@ static const int tag_string_len[TAG_TYPE_NONE][2] = {
     {2,2},
     {2,2},
     {1,5},
-    {1,3},
-    {1,3},
+    {1,4},
+    {1,4},
 
     {1,0},
     {1,0},
@@ -1465,7 +1465,9 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
     // a chunk is part of the text that will be added with a specific voice/style. So we increment chunk only when we need a different style applied
     // Number of chunks is at least 1 if len is > 0
     int srcidx = 0, dstidx = 0, tagidx = 0, bBracesOpen = 0, chunkidx = 0;
-    int iopenneeded = 0; icloseneeded = 0, iopened = 0, bopenneeded = 0; bcloseneeded = 0, bopened = 0, uopenneeded = 0; ucloseneeded = 0, uopened = 0;
+    // (x)openneeded and (x)closeneeded are used to store all tags within braces, so we can order them correctly at the closing of the tag
+    int iopenneeded = 0, icloseneeded = 0, iopened = 0, bopenneeded = 0, bcloseneeded = 0, bopened = 0, uopenneeded = 0, ucloseneeded = 0, uopened = 0;
+    // initial string can only hold starts, finalstring can only hold closures
     uint32_t initialstring = 0, finalstring = 0;
 
     // Basic sanity checking for inputs
@@ -1473,8 +1475,6 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
     {
         return 0;
     }
-
-    vod_log_error(VOD_LOG_ERR, request_context->log, 0, "START:");
 
     while (srcidx < srclen)
     {
@@ -1517,11 +1517,7 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
                     case (TAG_TYPE_ITALIC_START): {
                         if (iopened == 0)
                         {
-                            iopened = 1;
-                            ass_add_biu_ends(&finalstring, TAG_TYPE_ITALIC_END, 1); //add
-                            // replace the string with its equivalent in target string
-                            vod_memcpy(textp[chunkidx] + dstidx, tag_replacement_strings[tagidx], tag_string_len[tagidx][1]);
-                            dstidx += tag_string_len[tagidx][1]; //tag got written to output
+                            iopenneeded = 1; //at the ending brace
                         }
                     } break;
 
@@ -1555,11 +1551,7 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
                     case (TAG_TYPE_BOLD_START): {
                         if (bopened == 0)
                         {
-                            bopened = 1;
-                            ass_add_biu_ends(&finalstring, TAG_TYPE_BOLD_END, 1); //add
-                            // replace the string with its equivalent in target string
-                            vod_memcpy(textp[chunkidx] + dstidx, tag_replacement_strings[tagidx], tag_string_len[tagidx][1]);
-                            dstidx += tag_string_len[tagidx][1]; //tag got written to output
+                            bopenneeded = 1; //at the ending brace
                         }
                     } break;
 
@@ -1592,11 +1584,7 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
                     case (TAG_TYPE_UNDER_START): {
                         if (uopened == 0)
                         {
-                            uopened = 1;
-                            ass_add_biu_ends(&finalstring, TAG_TYPE_UNDER_END, 1); //add
-                            // replace the string with its equivalent in target string
-                            vod_memcpy(textp[chunkidx] + dstidx, tag_replacement_strings[tagidx], tag_string_len[tagidx][1]);
-                            dstidx += tag_string_len[tagidx][1]; //tag got written to output
+                            uopenneeded = 1; //at the ending brace
                         }
                     } break;
 
@@ -1641,6 +1629,31 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
                             dstidx += tag_string_len[TAG_TYPE_UNDER_END][1];
                         }
                     }
+                    if (iopenneeded) {
+                        iopened = 1;
+                        iopenneeded = 0;
+                        ass_add_biu_ends(&finalstring, TAG_TYPE_ITALIC_END, 1); //add
+                        // replace the string with its equivalent in target string
+                        vod_memcpy(textp[chunkidx] + dstidx, tag_replacement_strings[TAG_TYPE_ITALIC_START], tag_string_len[TAG_TYPE_ITALIC_START][1]);
+                        dstidx += tag_string_len[TAG_TYPE_ITALIC_START][1]; //tag got written to output
+                    }
+                    if (bopenneeded) {
+                        bopened = 1;
+                        bopenneeded = 0;
+                        ass_add_biu_ends(&finalstring, TAG_TYPE_BOLD_END, 1); //add
+                        // replace the string with its equivalent in target string
+                        vod_memcpy(textp[chunkidx] + dstidx, tag_replacement_strings[TAG_TYPE_BOLD_START], tag_string_len[TAG_TYPE_BOLD_START][1]);
+                        dstidx += tag_string_len[TAG_TYPE_BOLD_START][1]; //tag got written to output
+                    }
+                    if (uopenneeded) {
+                        uopened = 1;
+                        uopenneeded = 0;
+                        ass_add_biu_ends(&finalstring, TAG_TYPE_UNDER_END, 1); //add
+                        // replace the string with its equivalent in target string
+                        vod_memcpy(textp[chunkidx] + dstidx, tag_replacement_strings[TAG_TYPE_UNDER_START], tag_string_len[TAG_TYPE_UNDER_START][1]);
+                        dstidx += tag_string_len[TAG_TYPE_UNDER_START][1]; //tag got written to output
+                    }
+
                 }
                 // if the next char is not "\\" or "}", then ignore all characters between here and then
                 // (case of \b400) or unsupported \xxxxxxx tag
@@ -1788,10 +1801,6 @@ ass_parse(
 {
     ass_track_t *ass_track;
     vod_status_t ret_status;
-#ifdef  TEMP_VERBOSITY
-    vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-        "ass_parse() first line size %d, text is: '%.30s'", source->len, (char *)(source->data));
-#endif
     ass_track = parse_memory((char *)(source->data), source->len, request_context);
 
     if (ass_track == NULL)
