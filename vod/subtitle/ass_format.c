@@ -46,7 +46,7 @@
 #define FIXED_WEBVTT_VOICE_SPANEND_STR  "</v>"
 #define FIXED_WEBVTT_VOICE_SPANEND_WIDTH  4
 
-
+// ignore this set for now, till we see how to support inline tags for color/shadow/outline/background
 #define FIXED_WEBVTT_CLASS_NOITALIC  "STYLE\r\n::cue(.noitalic) {\r\nfont-style: normal;\r\n}\r\n\r\n"
 #define FIXED_WEBVTT_CLASS_NOITALIC_WIDTH  53
 #define FIXED_WEBVTT_CLASS_ITALIC    "STYLE\r\n::cue(.italic) {\r\nfont-style: italic;\r\n}\r\n\r\n"
@@ -1863,9 +1863,6 @@ ass_parse_frames(
     ass_track_t *ass_track;
     vod_array_t frames;
     int evntcounter, chunkcounter;
-//#ifdef ASSUME_STYLE_SUPPORT
-//    int stylecounter;
-//#endif
     subtitle_base_metadata_t* metadata
                               = vod_container_of(base, subtitle_base_metadata_t, base);
     vod_str_t*     source     = &metadata->source;
