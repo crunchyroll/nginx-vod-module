@@ -2382,6 +2382,12 @@ ngx_http_vod_update_track_timescale(
 	part = &track->frames;
 	cur_frame = part->first_frame;
 	last_frame = part->last_frame;
+
+            //RAFIK REMOVE
+            vod_log_error(NGX_LOG_WARN, ctx->submodule_context.request_context.log
+                "\r\nTIMESCALE Rafik:\r\n  clip_to=%uL, cur_timescale=%d, new_timescale=%d, media_type=%d, curltlast=%d, scaled_dts=%uL",
+                part->clip_to, cur_timescale, new_timescale, track->media_info.media_type, (int)(cur_frame < last_frame, scaled_dts));
+
 	if (part->clip_to != UINT_MAX && cur_frame < last_frame)
 	{
 		clip_end_dts = rescale_time(part->clip_to, 1000, new_timescale);
@@ -2418,8 +2424,8 @@ ngx_http_vod_update_track_timescale(
 				else
 				{
 					ngx_log_error(NGX_LOG_WARN, ctx->submodule_context.request_context.log, 0,
-						"ngx_http_vod_update_track_timescale: last frame dts %uL greater than clip end dts %uL",
-						last_frame_dts, clip_end_dts);
+						"ngx_http_vod_update_track_timescale: last frame dts %uL greater than clip end dts %uL, scaled_dts=%uL",
+						last_frame_dts, clip_end_dts, scaled_dts);
 				}
 
 				track->total_frames_duration += scaled_dts - clip_start_dts;
