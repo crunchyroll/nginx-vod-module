@@ -2384,7 +2384,7 @@ ngx_http_vod_update_track_timescale(
 	last_frame = part->last_frame;
 
             //RAFIK REMOVE
-            vod_log_error(NGX_LOG_WARN, ctx->submodule_context.request_context.log
+            vod_log_error(NGX_LOG_WARN, ctx->submodule_context.request_context.log, 0,
                 "\r\nTIMESCALE Rafik:\r\n  clip_to=%uL, cur_timescale=%d, new_timescale=%d, media_type=%d, curltlast=%d, scaled_dts=%uL",
                 part->clip_to, cur_timescale, new_timescale, track->media_info.media_type, (int)(cur_frame < last_frame, scaled_dts));
 
