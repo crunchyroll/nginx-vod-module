@@ -82,7 +82,7 @@
 #define NUM_OF_TAGS_ALLOWED_PER_LINE 1
 
 //#define TEMP_VERBOSITY
-#define ASSUME_STYLE_SUPPORT
+//#define ASSUME_STYLE_SUPPORT
 
 typedef enum {
 // all starts should be in even index, all ends should be in odd index. This logic is assumed
