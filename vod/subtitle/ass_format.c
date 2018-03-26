@@ -1835,6 +1835,7 @@ ass_parse(
  * \output vtt_track->first_frame_time_offset
  * \output vtt_track->total_frames_size
  * \output vtt_track->frame_count
+ * \output vtt_track->frames.clip_to
  * \output vtt_track->frames.first_frame
  * \output vtt_track->frames.last_frame
  * \output vtt_track->first_frame_index
@@ -2169,6 +2170,7 @@ ass_parse_frames(
     ass_free_track(request_context->pool, ass_track);
 
     vtt_track->frame_count        = frames.nelts;
+    vtt_track->frames.clip_to     = UINT_MAX;
     vtt_track->frames.first_frame = frames.elts;
     vtt_track->frames.last_frame  = vtt_track->frames.first_frame + frames.nelts;
 

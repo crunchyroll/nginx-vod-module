@@ -63,10 +63,6 @@ webvtt_builder_build(
 	// webvtt header
 	p = vod_copy(p, first_track->media_info.extra_data.data, first_track->media_info.extra_data.len);
 
-                //RAFIK REMOVE
-                vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-                    "BUILDER Rafik header:\r\n%.30s", p);
-
 	for (cur_track = first_track; cur_track < media_set->filtered_tracks_end; cur_track++)
 	{
 		start_time = cur_track->first_frame_time_offset;
@@ -105,12 +101,6 @@ webvtt_builder_build(
 
 			// cue settings list + cue payload
 			p = vod_copy(p, src, cur_frame->size - id_size);
-
-                //RAFIK REMOVE
-                if(cur_track == first_track)
-                vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-                    "BUILDER CUE: size=%d, text=\n%.30s", cur_frame->size - id_size, p);
-
 		}
 	}
 
