@@ -72,7 +72,6 @@ webvtt_builder_build(
 		}
 		part = &cur_track->frames;
 		last_frame = part->last_frame;
-
 		for (cur_frame = part->first_frame;; cur_frame++)
 		{
 			if (cur_frame >= last_frame)
