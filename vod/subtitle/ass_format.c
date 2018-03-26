@@ -71,7 +71,7 @@
 #define ASS_STYLES_ALLOC 20
 #define ASS_SIZE_MAX ((size_t)-1)
 #define MAX_STR_SIZE_EVNT_CHUNK 1024
-#define MAX_STR_SIZE_ALL_WEBVTT_STYLES 10240
+#define MAX_STR_SIZE_ALL_WEBVTT_STYLES 2048
 
 #define ass_atof(STR) (ass_strtod((STR),NULL))
 
@@ -2057,7 +2057,7 @@ ass_parse_frames(
             return VOD_ALLOC_FAILED;
         }
         // allocate the text of output frame
-        p = pfixed = vod_alloc(request_context->pool, 1024);
+        p = pfixed = vod_alloc(request_context->pool, MAX_STR_SIZE_EVNT_CHUNK);
         if (p == NULL)
         {
             vod_log_error(VOD_LOG_ERR, request_context->log, 0,
