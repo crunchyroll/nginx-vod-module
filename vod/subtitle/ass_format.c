@@ -2016,7 +2016,7 @@ ass_parse_frames(
         char*          event_textp[NUM_OF_TAGS_ALLOWED_PER_LINE];
         int            event_len  [NUM_OF_TAGS_ALLOWED_PER_LINE];
         uint32_t       eventprestring[NUM_OF_TAGS_ALLOWED_PER_LINE];
-        int            margL, margR, margV, sizeH; // all of these are integer percentage values
+        int            margL, margR, margV; // all of these are integer percentage values
 
         ass_event_t*   prev_event = ass_track->events + evntcounter - 1;
                        cur_event  = ass_track->events + evntcounter;
@@ -2080,30 +2080,31 @@ ass_parse_frames(
             margV = ((cur_event->MarginV > 0) ? cur_event->MarginV : cur_style->MarginV) * 100 / ass_track->PlayResY; // top assumed
             if (margL || margR || margV)
             {
-                sizeH = margR - margL;
-                if (sizeH < 0) sizeH = 50;
-                if (cur_style->Alignment >= VALIGN_CENTER)   //middle Alignment  for values 9,10,11
-                    margV = 50;
-                else if (cur_style->Alignment < VALIGN_TOP)  //bottom Alignment  for values 1, 2, 3
+                int pos, line, sizeH;
+                if (cur_style->Alignment >= VALIGN_CENTER) {   //middle Alignment  for values 9,10,11
+                    line = FFMINMAX(margV - 10, 10, 90);
+                } else if (cur_style->Alignment < VALIGN_TOP) { //bottom Alignment  for values 1, 2, 3
                     margV = 100 - margV;
+                    line = FFMINMAX(margV - 20, 10, 80);
+                } else {                                        //top alignment is the default assumption
+                    line = FFMINMAX(margV, 10, 90);
+                }
 
-                // Smart Logic to avoid problems of native players, revise and change as this is not part of the standards
-                if (margL > 70)
-                    margL = 70;
-                if (sizeH < 30)
-                    sizeH = 30;
-                if (margV > 80)
-                    margV = 80;
-#ifdef  TEMP_VERBOSITY
-                vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-                    "size=%d, L=%d, R=%d, V=%d, align=%d", sizeH, margL, margR, margV, cur_style->Alignment);
-#endif
+                if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
+                    pos = FFMINMAX((margL + margR)>>1 - 20, 10, 70);
+                } else if (((cur_style->Alignment - 1) & 3) != 0) { //right  Alignment  3/7/11
+                    pos = FFMINMAX((margL + margR)>>1 + 20, 10, 70);
+                } else {                                            //left Alignment is default assumption
+                    pos = FFMINMAX(margL, 10, 70);
+                }
+                sizeH = FFMINMAX(margR - margL, 30, 70);
+
                 len = 10; vod_memcpy(p, " position:", len);                     p+=len;
-                vod_sprintf((u_char*)p, "%03uD", margL);                        p+=3;
+                vod_sprintf((u_char*)p, "%03uD", pos);                          p+=3;
                 len =  7; vod_memcpy(p, "% size:", len);                        p+=len;
                 vod_sprintf((u_char*)p, "%03uD", sizeH);                        p+=3;
                 len =  7; vod_memcpy(p, "% line:", len);                        p+=len;
-                vod_sprintf((u_char*)p, "%03uD", margV);                        p+=3;
+                vod_sprintf((u_char*)p, "%03uD", line);                         p+=3;
             }
             // We should only insert this if an alignment override tag {\a...}is in the text, otherwise follow the style's alignment
             // but for now, insert it all the time till all players can read styles
