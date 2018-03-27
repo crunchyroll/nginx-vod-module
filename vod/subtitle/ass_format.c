@@ -2091,9 +2091,9 @@ ass_parse_frames(
                 }
 
                 if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
-                    pos = FFMINMAX((margL + margR)>>1, 20, 80);
+                    pos = FFMINMAX((margL + margR)>>1 - 20, 10, 70);
                 } else if (((cur_style->Alignment - 1) & 3) != 0) { //right  Alignment  3/7/11
-                    pos = FFMINMAX(margR, 30, 90);
+                    pos = FFMINMAX((margL + margR)>>1 + 20, 10, 70);
                 } else {                                            //left Alignment is default assumption
                     pos = FFMINMAX(margL, 10, 70);
                 }
