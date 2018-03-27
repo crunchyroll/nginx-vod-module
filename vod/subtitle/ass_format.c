@@ -71,7 +71,7 @@
 #define ASS_STYLES_ALLOC 20
 #define ASS_SIZE_MAX ((size_t)-1)
 #define MAX_STR_SIZE_EVNT_CHUNK 1024
-#define MAX_STR_SIZE_ALL_WEBVTT_STYLES 2048
+#define MAX_STR_SIZE_ALL_WEBVTT_STYLES 20480
 
 #define ass_atof(STR) (ass_strtod((STR),NULL))
 
@@ -82,7 +82,7 @@
 #define NUM_OF_TAGS_ALLOWED_PER_LINE 1
 
 //#define TEMP_VERBOSITY
-//#define ASSUME_STYLE_SUPPORT
+#define ASSUME_STYLE_SUPPORT
 
 typedef enum {
 // all starts should be in even index, all ends should be in odd index. This logic is assumed
@@ -1928,7 +1928,8 @@ ass_parse_frames(
     len = sizeof(WEBVTT_HEADER_NEWLINES) - 1; vod_memcpy(p, WEBVTT_HEADER_NEWLINES, len);  p+=len;
 #ifdef ASSUME_STYLE_SUPPORT
     int stylecounter;
-    for (stylecounter = (ass_track->default_style ? 1 : 0); stylecounter < ass_track->n_styles; stylecounter++)
+    bool_t fewstyles = TRUE;
+    for (stylecounter = (ass_track->default_style ? 1 : 0); (stylecounter < ass_track->n_styles) && fewstyles; stylecounter++)
     {
         ass_style_t* cur_style = ass_track->styles + stylecounter;
 
@@ -1988,7 +1989,7 @@ ass_parse_frames(
             len = 19; vod_memcpy(p, "background-color: #", len);                               p+=len;
             vod_sprintf((u_char*)p, "%08uxD;\r\n", cur_style->BackColour);                     p+=11;
         }
-
+#if 0
 		len =  12; vod_memcpy(p, "text-align: ", len);                                         p+=len;
 		if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
 			len =  6; vod_memcpy(p, "center", len);                                            p+=len;
@@ -1998,9 +1999,12 @@ ass_parse_frames(
 			len =  5; vod_memcpy(p, "right", len);                                             p+=len;
 		}
 		len = 3; vod_memcpy(p, ";\r\n", len);                                                  p+=len;
-
+#endif
         vod_memcpy(p, FIXED_WEBVTT_BRACES_END_STR, FIXED_WEBVTT_BRACES_END_WIDTH);             p+=FIXED_WEBVTT_BRACES_END_WIDTH;
         len = 2; vod_memcpy(p, "\r\n", len);                                                   p+=len;
+
+        // check that we are not getting too close to memory allocated. If too many styles, ignore the rest.
+        fewstyles = (8 * (int)(p - pfixed)) < (7 * MAX_STR_SIZE_ALL_WEBVTT_STYLES);
     }
 #endif //ASSUME_STYLE_SUPPORT
     header->len               = (size_t)(p - pfixed);
@@ -2039,8 +2043,8 @@ ass_parse_frames(
 
 #ifdef  TEMP_VERBOSITY
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-            "ass_parse_frames: event=%d num_chunks=%d len0=%d order0=%d len1=%d order1=%d len2=%d order2=%d",
-            evntcounter, num_chunks_in_text, event_len[0], eventprestring[0], event_len[1], eventprestring[1], event_len[2], eventprestring[2]);
+            "ass_parse_frames: event=%d num_chunks=%d len0=%d order0=%d",
+            evntcounter, num_chunks_in_text, event_len[0], eventprestring[0]);
 #endif
         if (evntcounter > 0 && cur_frame != NULL)
         {
@@ -2082,6 +2086,14 @@ ass_parse_frames(
                     margV = 50;
                 else if (cur_style->Alignment < VALIGN_TOP)  //bottom Alignment  for values 1, 2, 3
                     margV = 100 - margV;
+
+                // Smart Logic to avoid problems of native players, revise and change as this is not part of the standards
+                if (margL > 70)
+                    margL = 70;
+                if (sizeH < 30)
+                    sizeH = 30;
+                if (margV > 80)
+                    margV = 80;
 #ifdef  TEMP_VERBOSITY
                 vod_log_error(VOD_LOG_ERR, request_context->log, 0,
                     "size=%d, L=%d, R=%d, V=%d, align=%d", sizeH, margL, margR, margV, cur_style->Alignment);
