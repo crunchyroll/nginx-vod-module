@@ -2081,7 +2081,7 @@ ass_parse_frames(
             // All the following variables are percentages in rounded integer values
             if (margL || margR || margV)
             {
-                int center, startpos, line, sizeH;
+                int line, sizeH, pos;
                 if (cur_style->Alignment >= VALIGN_CENTER) {   //middle Alignment  for values 9,10,11
                     line = FFMINMAX(margV - 10, 8, 80);
                 } else if (cur_style->Alignment < VALIGN_TOP) { //bottom Alignment  for values 1, 2, 3
@@ -2092,17 +2092,16 @@ ass_parse_frames(
                 }
 
                 sizeH = FFMINMAX(margR - margL, 30, 70);
-                center = FFMINMAX((margL + margR)/2, sizeH/2, 100 - sizeH/2);
                 if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
-                    startpos = center - sizeH/2;
-                } else if (((cur_style->Alignment - 1) & 3) != 0) { //right  Alignment  3/7/11
-                    startpos = FFMINMAX(margR - sizeH, sizeH, 90);
-                } else {                                            //left Alignment is default assumption
-                    startpos = FFMINMAX(margL, 0, 100 - sizeH);
+                    pos = FFMINMAX((margR + margL)/2, sizeH/2, 100 - sizeH/2);
+                } else if (((cur_style->Alignment - 1) & 3) == 0) { //left   Alignment  1/5/9
+                    pos = FFMINMAX(margL, 3, 100 - sizeH);
+                } else {                                            //right  Alignment  3/7/11
+                    pos = FFMINMAX(margR, sizeH, 97);
                 }
 
                 len = 10; vod_memcpy(p, " position:", len);                     p+=len;
-                vod_sprintf((u_char*)p, "%03uD", startpos);                     p+=3;
+                vod_sprintf((u_char*)p, "%03uD", pos);                          p+=3;
                 len =  7; vod_memcpy(p, "% size:", len);                        p+=len;
                 vod_sprintf((u_char*)p, "%03uD", sizeH);                        p+=3;
                 len =  7; vod_memcpy(p, "% line:", len);                        p+=len;
@@ -2120,12 +2119,12 @@ ass_parse_frames(
                 len =  5; vod_memcpy(p, "right", len);                          p+=len;
             }
             len = 2; vod_memcpy(p, "\r\n", len);                                p+=len;
-#ifdef ASSUME_STYLE_SUPPORT
-            vod_memcpy(p, FIXED_WEBVTT_VOICE_START_STR, FIXED_WEBVTT_VOICE_START_WIDTH);       p+=FIXED_WEBVTT_VOICE_START_WIDTH;
-            len = vod_strlen(cur_style->Name); vod_sprintf((u_char*)p, cur_style->Name, len);  p+=len;
-            vod_memcpy(p, FIXED_WEBVTT_VOICE_END_STR, FIXED_WEBVTT_VOICE_END_WIDTH);           p+=FIXED_WEBVTT_VOICE_END_WIDTH;
-#endif //ASSUME_STYLE_SUPPORT
         }
+#ifdef ASSUME_STYLE_SUPPORT
+        vod_memcpy(p, FIXED_WEBVTT_VOICE_START_STR, FIXED_WEBVTT_VOICE_START_WIDTH);       p+=FIXED_WEBVTT_VOICE_START_WIDTH;
+        len = vod_strlen(cur_style->Name); vod_sprintf((u_char*)p, cur_style->Name, len);  p+=len;
+        vod_memcpy(p, FIXED_WEBVTT_VOICE_END_STR, FIXED_WEBVTT_VOICE_END_WIDTH);           p+=FIXED_WEBVTT_VOICE_END_WIDTH;
+#endif //ASSUME_STYLE_SUPPORT
 
 
         for (chunkcounter = 0; chunkcounter < num_chunks_in_text; chunkcounter++)
