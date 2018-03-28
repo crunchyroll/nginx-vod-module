@@ -2078,29 +2078,31 @@ ass_parse_frames(
             margL = ((cur_event->MarginL > 0) ? cur_event->MarginL : cur_style->MarginL) * 100 / ass_track->PlayResX;
             margR = (ass_track->PlayResX - ((cur_event->MarginR > 0) ? cur_event->MarginR : cur_style->MarginR)) * 100 / ass_track->PlayResX;
             margV = ((cur_event->MarginV > 0) ? cur_event->MarginV : cur_style->MarginV) * 100 / ass_track->PlayResY; // top assumed
+            // All the following variables are percentages in rounded integer values
             if (margL || margR || margV)
             {
-                int pos, line, sizeH;
+                int center, startpos, line, sizeH;
                 if (cur_style->Alignment >= VALIGN_CENTER) {   //middle Alignment  for values 9,10,11
-                    line = FFMINMAX(margV - 10, 10, 90);
+                    line = FFMINMAX(margV - 10, 8, 80);
                 } else if (cur_style->Alignment < VALIGN_TOP) { //bottom Alignment  for values 1, 2, 3
                     margV = 100 - margV;
-                    line = FFMINMAX(margV - 20, 10, 80);
+                    line = FFMINMAX(margV - 20, 8, 80);
                 } else {                                        //top alignment is the default assumption
-                    line = FFMINMAX(margV, 10, 90);
+                    line = FFMINMAX(margV, 8, 80);
                 }
 
-                if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
-                    pos = FFMINMAX((margL + margR)/2 - 20, 10, 70);
-                } else if (((cur_style->Alignment - 1) & 3) != 0) { //right  Alignment  3/7/11
-                    pos = FFMINMAX((margL + margR)/2 + 20, 10, 70);
-                } else {                                            //left Alignment is default assumption
-                    pos = FFMINMAX(margL, 10, 70);
-                }
                 sizeH = FFMINMAX(margR - margL, 30, 70);
+                center = FFMINMAX((margL + margR)/2, sizeH/2, 100 - sizeH/2);
+                if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
+                    startpos = center - sizeH/2;
+                } else if (((cur_style->Alignment - 1) & 3) != 0) { //right  Alignment  3/7/11
+                    startpos = FFMINMAX(margR - sizeH, sizeH, 90);
+                } else {                                            //left Alignment is default assumption
+                    startpos = FFMINMAX(margL, 0, 100 - sizeH);
+                }
 
                 len = 10; vod_memcpy(p, " position:", len);                     p+=len;
-                vod_sprintf((u_char*)p, "%03uD", pos);                          p+=3;
+                vod_sprintf((u_char*)p, "%03uD", startpos);                     p+=3;
                 len =  7; vod_memcpy(p, "% size:", len);                        p+=len;
                 vod_sprintf((u_char*)p, "%03uD", sizeH);                        p+=3;
                 len =  7; vod_memcpy(p, "% line:", len);                        p+=len;
@@ -2108,6 +2110,7 @@ ass_parse_frames(
             }
             // We should only insert this if an alignment override tag {\a...}is in the text, otherwise follow the style's alignment
             // but for now, insert it all the time till all players can read styles
+            // TODO: Should we use start and end instead of left and right?
             len =  8; vod_memcpy(p, "% align:", len);                           p+=len;
             if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
                 len =  6; vod_memcpy(p, "center", len);                         p+=len;
