@@ -2081,19 +2081,20 @@ ass_parse_frames(
             // All the following variables are percentages in rounded integer values
             if (margL || margR || margV)
             {
+                // center/middle means we are giving the coordinate of the center/middle point
                 int line, sizeH, pos;
                 if (cur_style->Alignment >= VALIGN_CENTER) {   //middle Alignment  for values 9,10,11
-                    line = FFMINMAX(margV - 10, 8, 80);
+                    line = FFMINMAX(margV - 4, 8, 84);
                 } else if (cur_style->Alignment < VALIGN_TOP) { //bottom Alignment  for values 1, 2, 3
                     margV = 100 - margV;
-                    line = FFMINMAX(margV - 20, 8, 80);
+                    line = FFMINMAX(margV - 8, 8, 84);
                 } else {                                        //top alignment is the default assumption
-                    line = FFMINMAX(margV, 8, 80);
+                    line = FFMINMAX(margV, 8, 84);
                 }
 
-                sizeH = FFMINMAX(margR - margL, 30, 70);
+                sizeH = FFMINMAX(margR - margL, 30, 100 - margL);
                 if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
-                    pos = FFMINMAX((margR + margL)/2, sizeH/2, 100 - sizeH/2);
+                    pos = FFMINMAX((margR + margL + 1)/2, sizeH/2, 100 - sizeH/2);
                 } else if (((cur_style->Alignment - 1) & 3) == 0) { //left   Alignment  1/5/9
                     pos = FFMINMAX(margL, 3, 100 - sizeH);
                 } else {                                            //right  Alignment  3/7/11
@@ -2109,14 +2110,13 @@ ass_parse_frames(
             }
             // We should only insert this if an alignment override tag {\a...}is in the text, otherwise follow the style's alignment
             // but for now, insert it all the time till all players can read styles
-            // TODO: Should we use start and end instead of left and right?
             len =  8; vod_memcpy(p, "% align:", len);                           p+=len;
             if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
                 len =  6; vod_memcpy(p, "center", len);                         p+=len;
             } else if (((cur_style->Alignment - 1) & 3) == 0) { //left   Alignment  1/5/9
-                len =  4; vod_memcpy(p, "left", len);                           p+=len;
+                len =  5; vod_memcpy(p, "start", len);                          p+=len;
             } else {                                            //right  Alignment  3/7/11
-                len =  5; vod_memcpy(p, "right", len);                          p+=len;
+                len =  3; vod_memcpy(p, "end", len);                            p+=len;
             }
             len = 2; vod_memcpy(p, "\r\n", len);                                p+=len;
         }
