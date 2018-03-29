@@ -1304,6 +1304,8 @@ static int process_events_line(ass_track_t *track, char *str, request_context_t*
             event_format_fallback(track);
 
         process_event_tail(track, event, str);
+    } else if (!strncmp(str, "Comment:", 8)) {
+        // Ignore and do nothing, this is just a comment line
     } else {
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
             "Event line not understood: %s", str);
@@ -1774,11 +1776,14 @@ ass_reader_init(
 {
     u_char* p = buffer->data;
 
+    if (vod_strncmp(p, UTF8_BOM, sizeof(UTF8_BOM) - 1) == 0)
+    {
+        p += sizeof(UTF8_BOM) - 1;
+    }
+
     // The line that says “[Script Info]” must be the first line in a v4/v4+ script.
     if (buffer->len > 0 && vod_strncmp(p, ASS_SCRIPT_INFO_HEADER, sizeof(ASS_SCRIPT_INFO_HEADER) - 1) != 0)
     {
-        vod_log_debug1(VOD_LOG_DEBUG_LEVEL, request_context->log, 0,
-            "ass_reader_init failed, len=%d", buffer->len);
         return VOD_NOT_FOUND;
     }
 

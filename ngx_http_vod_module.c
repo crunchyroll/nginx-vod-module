@@ -2382,7 +2382,6 @@ ngx_http_vod_update_track_timescale(
 	part = &track->frames;
 	cur_frame = part->first_frame;
 	last_frame = part->last_frame;
-
 	if (part->clip_to != UINT_MAX && cur_frame < last_frame)
 	{
 		clip_end_dts = rescale_time(part->clip_to, 1000, new_timescale);
