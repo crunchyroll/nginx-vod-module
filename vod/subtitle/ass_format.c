@@ -143,7 +143,7 @@ inline uint32_t ass_rem_biu(uint32_t finalstring)
     return (finalstring >> 8);
 }
 
-static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *evlen, uint32_t *evorder, bool_t *initneeded, request_context_t* request_context)
+static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *evlen, uint32_t *evorder, bool_t *initneeded, uint32_t *max_run, request_context_t* request_context)
 {
     // a chunk is part of the text that will be added with a specific voice/style. So we increment chunk only when we need a different style applied
     // Number of chunks is at least 1 if len is > 0
@@ -604,8 +604,9 @@ ass_parse_frames(
         }
 
         bool_t  initneeded[NUM_OF_INLINE_TAGS_SUPPORTED] = {cur_style->Italic, cur_style->Bold, cur_style->Underline};
+        uint32_t max_run = 0;
         int  num_chunks_in_text = split_event_text_to_chunks(cur_event->Text, vod_strlen(cur_event->Text),
-                                      event_textp, event_len, eventprestring, initneeded, request_context);
+                                      event_textp, event_len, eventprestring, initneeded, &max_run, request_context);
 
 #ifdef  TEMP_VERBOSITY
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
@@ -655,19 +656,20 @@ ass_parse_frames(
             margL = ((cur_event->MarginL > 0) ? cur_event->MarginL : cur_style->MarginL) * 100 / ass_track->PlayResX;
             margR = (ass_track->PlayResX - ((cur_event->MarginR > 0) ? cur_event->MarginR : cur_style->MarginR)) * 100 / ass_track->PlayResX;
             margV = ((cur_event->MarginV > 0) ? cur_event->MarginV : cur_style->MarginV) * 100 / ass_track->PlayResY; // top assumed
-            // All the following variables are percentages in rounded integer values
+            // All the margX variables are percentages in rounded integer values.
+            // line is integer in range of [0 - 12] given 16 rows of lines in the frame.
             if (margL || margR || margV)
             {
                 // center/middle means we are giving the coordinate of the center/middle point
                 int line, sizeH, pos;
 
                 if (cur_style->Alignment >= VALIGN_CENTER) {   //middle Alignment  for values 9,10,11
-                    line = FFMINMAX(margV - 4, 8, 84);
+                    line = 7;
                 } else if (cur_style->Alignment < VALIGN_TOP) { //bottom Alignment  for values 1, 2, 3
                     margV = 100 - margV;
-                    line = FFMINMAX(margV - 8, 8, 84);
+                    line = FFMINMAX(margV >> 4, 0, 12);
                 } else {                                        //top alignment is the default assumption
-                    line = FFMINMAX(margV, 8, 84);
+                    line = FFMINMAX(margV >> 4, 0, 12);
                 }
 
                 sizeH = FFMINMAX(margR - margL, 30, 100 - margL);
@@ -684,11 +686,11 @@ ass_parse_frames(
                 len =  7; vod_memcpy(p, "% size:", len);                        p+=len;
                 vod_sprintf((u_char*)p, "%03uD", sizeH);                        p+=3;
                 len =  7; vod_memcpy(p, "% line:", len);                        p+=len;
-                vod_sprintf((u_char*)p, "%03uD", line);                         p+=3;
+                vod_sprintf((u_char*)p, "%02uD", line);                         p+=2;
             }
             // We should only insert this if an alignment override tag {\a...}is in the text, otherwise follow the style's alignment
             // but for now, insert it all the time till all players can read styles
-            len =  8; vod_memcpy(p, "% align:", len);                           p+=len;
+            len =  7; vod_memcpy(p, " align:", len);                            p+=len;
             if ((bleft == FALSE) && (bright == FALSE)) {            //center Alignment  2/6/10
                 len =  6; vod_memcpy(p, "center", len);                         p+=len;
             } else if (bleft == TRUE) {                             //left   Alignment  1/5/9
