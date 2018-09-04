@@ -23,6 +23,8 @@
 #define FIXED_WEBVTT_VOICE_END_WIDTH  1
 #define FIXED_WEBVTT_VOICE_SPANEND_STR  "</v>"
 #define FIXED_WEBVTT_VOICE_SPANEND_WIDTH  4
+#define FIXED_WEBVTT_ESCAPE_FOR_RTL_STR "&lrm;"
+#define FIXED_WEBVTT_ESCAPE_FOR_RTL_WIDTH "&lrm;"
 
 // ignore this set for now, till we see how to support inline tags for color/shadow/outline/background
 #define FIXED_WEBVTT_CLASS_NOITALIC  "STYLE\r\n::cue(.noitalic) {\r\nfont-style: normal;\r\n}\r\n\r\n"
@@ -147,13 +149,13 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
 {
     // a chunk is part of the text that will be added with a specific voice/style. So we increment chunk only when we need a different style applied
     // Number of chunks is at least 1 if len is > 0
-    int srcidx = 0, dstidx = 0, tagidx = 0, bBracesOpen = 0, chunkidx = 0, ibu_idx, byte_idx;
+    int srcidx = 0, dstidx = 0, tagidx, bBracesOpen = 0, chunkidx = 0, ibu_idx, byte_idx;
     // (x)openneeded and (x)closeneeded are used to store all tags within braces, so we can order them correctly at the closing of the tag
     bool_t openneeded[NUM_OF_INLINE_TAGS_SUPPORTED]  = {FALSE,FALSE,FALSE};
     bool_t closeneeded[NUM_OF_INLINE_TAGS_SUPPORTED] = {FALSE,FALSE,FALSE};
     bool_t opened[NUM_OF_INLINE_TAGS_SUPPORTED]      = {FALSE,FALSE,FALSE};
     // initial string can only hold starts, finalstring can only hold closures
-    uint32_t initialstring = 0, finalstring = 0;
+    uint32_t initialstring = 0, finalstring = 0, cur_run = 0;
 
     // Basic sanity checking for inputs
     if ((src == NULL) || (srclen < 1) || (srclen > MAX_STR_SIZE_EVNT_CHUNK))
@@ -209,6 +211,20 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
                             openneeded[ibu_idx] = TRUE; //at the ending brace
                         }
                     } break;
+
+                    case (TAG_TYPE_NEWLINE_LARGE):
+                    case (TAG_TYPE_NEWLINE_SMALL): {
+                        if cur_run > *max_run) {
+                            *max_run = cur_run; // we don't add the size of \r\n since they are not visible on screen.
+                            cur_run = 0;        // max_run holds the longest run of visible characters on any line.
+                        }
+                    } break;
+                    case (TAG_TYPE_AMPERSANT):
+                    case (TAG_TYPE_BIGGERTHAN):
+                    case (TAG_TYPE_SMALLERTHAN): {
+                        cur_run++;  // just one single visible character out of this webvtt code word
+                    }
+
 
                     default: {
                         // replace the string with its equivalent in target string
@@ -275,7 +291,12 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
             vod_memcpy(textp[chunkidx] + dstidx, src + srcidx, 1);
             srcidx++;
             dstidx++;
+            cur_run++;
         }
+    }
+
+    if cur_run > *max_run) {
+        *max_run = cur_run; // we don't add the size of \r\n since they are not visible on screen.
     }
 
     // We now close b/i/u where close is needed
@@ -313,6 +334,9 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
         srcidx, dstidx, closeneeded[0], closeneeded[1], closeneeded[2], opened[0], opened[1], opened[2], initneeded[0], initneeded[1], initneeded[2], initialstring, finalstring);
 #endif
 
+    vod_log_error(VOD_LOG_ERR, request_context->log, 0,
+        "CUE max_run = %d", *max_run);
+        
     evorder[chunkidx] = initialstring;
     evlen[chunkidx]   = dstidx;
 
