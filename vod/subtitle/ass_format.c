@@ -214,7 +214,7 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
 
                     case (TAG_TYPE_NEWLINE_LARGE):
                     case (TAG_TYPE_NEWLINE_SMALL): {
-                        if cur_run > *max_run) {
+                        if (cur_run > *max_run) {
                             *max_run = cur_run; // we don't add the size of \r\n since they are not visible on screen.
                             cur_run = 0;        // max_run holds the longest run of visible characters on any line.
                         }
@@ -295,7 +295,7 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
         }
     }
 
-    if cur_run > *max_run) {
+    if (cur_run > *max_run) {
         *max_run = cur_run; // we don't add the size of \r\n since they are not visible on screen.
     }
 
@@ -336,7 +336,7 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
 
     vod_log_error(VOD_LOG_ERR, request_context->log, 0,
         "CUE max_run = %d", *max_run);
-        
+
     evorder[chunkidx] = initialstring;
     evlen[chunkidx]   = dstidx;
 
@@ -691,18 +691,20 @@ ass_parse_frames(
                     line = 7;
                 } else if (cur_style->Alignment < VALIGN_TOP) { //bottom Alignment  for values 1, 2, 3
                     margV = 100 - margV;
-                    line = FFMINMAX(margV >> 4, 0, 12);
+                    line = FFMINMAX((margV+4) >> 3, 0, 12);
                 } else {                                        //top alignment is the default assumption
-                    line = FFMINMAX(margV >> 4, 0, 12);
+                    line = FFMINMAX((margV+4) >> 3, 0, 12);
                 }
 
-                sizeH = FFMINMAX(margR - margL, 30, 100 - margL);
+                // cap horizontal size to more than 2x to make sure we don't break lines with generic font
+                // cap horizontal size to no more than 3x to make sure we allow right and left aligned events on same line
+                sizeH = FFMINMAX(margR - margL, (int)(max_run*2), (int)(max_run*3));
                 if ((bleft == FALSE) && (bright == FALSE)) {        //center Alignment  2/6/10
                     pos = FFMINMAX((margR + margL + 1)/2, sizeH/2, 100 - sizeH/2);
                 } else if (bleft == TRUE) {                         //left   Alignment  1/5/9
-                    pos = FFMINMAX(margL, 3, 100 - sizeH);
+                    pos = FFMINMAX(margL, 0, 100 - sizeH);
                 } else {                                            //right  Alignment  3/7/11
-                    pos = FFMINMAX(margR, sizeH, 97);
+                    pos = FFMINMAX(margR, sizeH, 100);
                 }
 
                 len = 10; vod_memcpy(p, " position:", len);                     p+=len;
