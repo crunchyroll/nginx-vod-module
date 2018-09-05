@@ -24,7 +24,7 @@
 #define FIXED_WEBVTT_VOICE_SPANEND_STR  "</v>"
 #define FIXED_WEBVTT_VOICE_SPANEND_WIDTH  4
 #define FIXED_WEBVTT_ESCAPE_FOR_RTL_STR "&lrm;"
-#define FIXED_WEBVTT_ESCAPE_FOR_RTL_WIDTH "&lrm;"
+#define FIXED_WEBVTT_ESCAPE_FOR_RTL_WIDTH 5
 
 // ignore this set for now, till we see how to support inline tags for color/shadow/outline/background
 #define FIXED_WEBVTT_CLASS_NOITALIC  "STYLE\r\n::cue(.noitalic) {\r\nfont-style: normal;\r\n}\r\n\r\n"
@@ -145,7 +145,7 @@ inline uint32_t ass_rem_biu(uint32_t finalstring)
     return (finalstring >> 8);
 }
 
-static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *evlen, uint32_t *evorder, bool_t *initneeded, uint32_t *max_run, request_context_t* request_context)
+static int split_event_text_to_chunks(char *src, int srclen, bool_t rtl, char **textp, int *evlen, uint32_t *evorder, bool_t *initneeded, uint32_t *max_run, request_context_t* request_context)
 {
     // a chunk is part of the text that will be added with a specific voice/style. So we increment chunk only when we need a different style applied
     // Number of chunks is at least 1 if len is > 0
@@ -161,6 +161,12 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
     if ((src == NULL) || (srclen < 1) || (srclen > MAX_STR_SIZE_EVNT_CHUNK))
     {
         return 0;
+    }
+
+    // if right to left language, insert marker before text
+    if (rtl == TRUE) {
+         vod_memcpy(textp[chunkidx], FIXED_WEBVTT_ESCAPE_FOR_RTL_STR, FIXED_WEBVTT_ESCAPE_FOR_RTL_WIDTH);
+         dstidx+=FIXED_WEBVTT_ESCAPE_FOR_RTL_WIDTH;
     }
 
     while (srcidx < srclen)
@@ -218,13 +224,23 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
                             *max_run = cur_run; // we don't add the size of \r\n since they are not visible on screen.
                             cur_run = 0;        // max_run holds the longest run of visible characters on any line.
                         }
+                        // replace the string with its equivalent in target string
+                        vod_memcpy(textp[chunkidx] + dstidx, tag_replacement_strings[tagidx], tag_string_len[tagidx][1]);
+                        dstidx += tag_string_len[tagidx][1]; //tag got written to output
+                        if (rtl == TRUE) {
+                             vod_memcpy(textp[chunkidx] + dstidx, FIXED_WEBVTT_ESCAPE_FOR_RTL_STR, FIXED_WEBVTT_ESCAPE_FOR_RTL_WIDTH);
+                             dstidx+=FIXED_WEBVTT_ESCAPE_FOR_RTL_WIDTH;
+                        }
                     } break;
+
                     case (TAG_TYPE_AMPERSANT):
                     case (TAG_TYPE_BIGGERTHAN):
                     case (TAG_TYPE_SMALLERTHAN): {
                         cur_run++;  // just one single visible character out of this webvtt code word
-                    }
-
+                        // replace the string with its equivalent in target string
+                        vod_memcpy(textp[chunkidx] + dstidx, tag_replacement_strings[tagidx], tag_string_len[tagidx][1]);
+                        dstidx += tag_string_len[tagidx][1]; //tag got written to output
+                    } break;
 
                     default: {
                         // replace the string with its equivalent in target string
@@ -288,10 +304,15 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
         // none of the tags matched this character
         if (tagidx == TAG_TYPE_NONE)
         {
+            // for Arabic language, we want to increment number of characters only once every 2 bytes
+            // Arabic utf8 chars all start with 0xD8 or 0xD9, different from all western languages
+            unsigned char cur_char = (unsigned char)(*(src + srcidx));
+            if (cur_char != 0xD8 && cur_char != 0xD9)
+                cur_run++;
+
             vod_memcpy(textp[chunkidx] + dstidx, src + srcidx, 1);
             srcidx++;
             dstidx++;
-            cur_run++;
         }
     }
 
@@ -333,9 +354,6 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
         "FINAL: srcidx=%d, dstidx=%d, icloseneeded=%d, bcloseneeded=%d, ucloseneeded=%d, iopened=%d, bopened=%d, uopened=%d, iinitneeded=%d, binitneeded=%d, uinitneeded=%d, initialstring=%d, finalstring=%d",
         srcidx, dstidx, closeneeded[0], closeneeded[1], closeneeded[2], opened[0], opened[1], opened[2], initneeded[0], initneeded[1], initneeded[2], initialstring, finalstring);
 #endif
-
-    vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-        "CUE max_run = %d", *max_run);
 
     evorder[chunkidx] = initialstring;
     evlen[chunkidx]   = dstidx;
@@ -629,7 +647,7 @@ ass_parse_frames(
 
         bool_t  initneeded[NUM_OF_INLINE_TAGS_SUPPORTED] = {cur_style->Italic, cur_style->Bold, cur_style->Underline};
         uint32_t max_run = 0;
-        int  num_chunks_in_text = split_event_text_to_chunks(cur_event->Text, vod_strlen(cur_event->Text),
+        int  num_chunks_in_text = split_event_text_to_chunks(cur_event->Text, vod_strlen(cur_event->Text), cur_style->bRightToLeftLanguage,
                                       event_textp, event_len, eventprestring, initneeded, &max_run, request_context);
 
 #ifdef  TEMP_VERBOSITY
