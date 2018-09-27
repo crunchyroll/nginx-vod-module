@@ -52,7 +52,7 @@
 
 
 //#define TEMP_VERBOSITY
-#define ASSUME_STYLE_SUPPORT
+//#define ASSUME_STYLE_SUPPORT
 
 
 typedef enum {
