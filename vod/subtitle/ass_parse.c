@@ -929,7 +929,7 @@ static int process_style(ass_track_t *track, char *str, request_context_t* reque
     style = track->styles + sid;
     target = style;
 
-    set_default_style(&track->styles[sid], FALSE);
+    set_default_style(target, FALSE);
 
     while (1) {
         NEXT(q, tname);
