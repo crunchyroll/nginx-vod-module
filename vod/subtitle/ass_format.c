@@ -628,11 +628,9 @@ ass_parse_frames(
             if ((cur_style->Alignment & 1) == 0) {              //center Alignment  2/6/10
                 // do nothing
             } else if (((cur_style->Alignment - 1) & 3) == 0) { //left   Alignment  1/5/9
-                 bright = cur_style->bRightToLeftLanguage;
-                 bleft  = !cur_style->bRightToLeftLanguage;
+                 bleft  = TRUE;
             } else {                                            //right  Alignment  3/7/11
-                 bright = !cur_style->bRightToLeftLanguage;
-                 bleft  = cur_style->bRightToLeftLanguage;
+                 bright = TRUE;
             }
 
             margL = ((cur_event->MarginL > 0) ? cur_event->MarginL : cur_style->MarginL) * 100 / ass_track->PlayResX;
@@ -678,9 +676,9 @@ ass_parse_frames(
             if ((bleft == FALSE) && (bright == FALSE)) {            //center Alignment  2/6/10
                 len =  6; vod_memcpy(p, "center", len);                         p+=len;
             } else if (bleft == TRUE) {                             //left   Alignment  1/5/9
-                len =  5; vod_memcpy(p, "start", len);                          p+=len;
+                len =  4; vod_memcpy(p, "left", len);                           p+=len;
             } else {                                                //right  Alignment  3/7/11
-                len =  3; vod_memcpy(p, "end", len);                            p+=len;
+                len =  5; vod_memcpy(p, "right", len);                          p+=len;
             }
             len = 2; vod_memcpy(p, "\r\n", len);                                p+=len;
         }
