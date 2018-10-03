@@ -38,7 +38,7 @@
 
 
 //#define TEMP_VERBOSITY
-//#define ASSUME_STYLE_SUPPORT
+#define ASSUME_STYLE_SUPPORT
 
 
 typedef enum {
@@ -390,9 +390,9 @@ ass_parse(
  * \brief Parse the .ass/.ssa file, convert to webvtt, output all cues as frames
  *
  * common for all frames
- * \output vtt_track->media_info.extra_data (WEBVTT header + all STYLE cues)
- * \output vtt_track->total_frames_duration
- * \output vtt_track->first_frame_time_offset
+ * \output vtt_track->media_info.extra_data   (WEBVTT header + all STYLE cues)
+ * \output vtt_track->total_frames_duration   (end of last unclipped frame/cue - start of first clipped frame/cue)
+ * \output vtt_track->first_frame_time_offset (index of first non-clipped frame/cue)
  * \output vtt_track->total_frames_size
  * \output vtt_track->frame_count
  * \output vtt_track->frames.clip_to
@@ -402,7 +402,7 @@ ass_parse(
  * \output result (media track in the track array)
  *
  * individual cues in the frames array
- * \output cur_frame->duration
+ * \output cur_frame->duration                (start time of next event - start time of current event)
  * \output cur_frame->offset
  * \output cur_frame->size
  * \output cur_frame->pts_delay
@@ -527,14 +527,6 @@ ass_parse_frames(
         if (cur_style->BorderStyle == 1 /*&& ass_track->type == TRACK_TYPE_ASS*/)
         {
             // webkit is not supported by all players, stick to adding outline using text-shadow
-#if 0
-            len = 22; vod_memcpy(p, "-webkit-text-stroke: #", len);                            p+=len;
-            vod_sprintf((u_char*)p, "%08uxD %01uDpx;\r\n", cur_style->OutlineColour, cur_style->Outline); p+=15;
-
-            len = 14; vod_memcpy(p, "text-shadow: #", len);                                    p+=len;
-            vod_sprintf((u_char*)p, "%08uxD %01uDpx %01uDpx 0px;\r\n", //* always very sharp non-blurred shadows */
-                         cur_style->BackColour, cur_style->Shadow, cur_style->Shadow);         p+=23;
-#else
             len = 13; vod_memcpy(p, "text-shadow: ", len);                                     p+=len;
             // add outline in 4 directions with the outline color
             vod_sprintf((u_char*)p, "#%08uxD -%01uDpx 0px, #%08uxD 0px %01uDpx, #%08uxD 0px -%01uDpx, #%08uxD %01uDpx 0px, #%08uxD %01uDpx %01uDpx 0px;\r\n",
@@ -544,7 +536,6 @@ ass_parse_frames(
                          cur_style->OutlineColour, cur_style->Outline,
                          cur_style->BackColour, cur_style->Shadow, cur_style->Shadow);         p+=102;
 
-#endif
         } else {
             len = 19; vod_memcpy(p, "background-color: #", len);                               p+=len;
             vod_sprintf((u_char*)p, "%08uxD;\r\n", cur_style->BackColour);                     p+=11;
