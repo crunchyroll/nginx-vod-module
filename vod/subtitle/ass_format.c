@@ -480,7 +480,6 @@ ass_parse_frames(
 {
     ass_track_t *ass_track;
     vod_array_t frames;
-    int evntcounter, chunkcounter;
     subtitle_base_metadata_t* metadata
                               = vod_container_of(base, subtitle_base_metadata_t, base);
     vod_str_t*     source     = &metadata->source;
@@ -488,8 +487,8 @@ ass_parse_frames(
     input_frame_t* cur_frame  = NULL;
     ass_event_t*   cur_event  = NULL;
     char *p, *pfixed;
+    int len, evntcounter, chunkcounter, stylecounter;
     vod_str_t* header         = &vtt_track->media_info.extra_data;
-    int len;
 
     vod_memzero(result, sizeof(*result));
     result->first_track       = vtt_track;
@@ -539,20 +538,6 @@ ass_parse_frames(
         ass_free_track(request_context->pool, ass_track);
         return VOD_ALLOC_FAILED;
     }
-
-    // We now insert header and all Style definitions
-    header->data              = (u_char*)pfixed;
-    len = sizeof(WEBVTT_HEADER_NEWLINES) - 1; vod_memcpy(p, WEBVTT_HEADER_NEWLINES, len);  p+=len;
-#ifdef ASSUME_STYLE_SUPPORT
-    int stylecounter;
-    for (stylecounter = (ass_track->default_style ? 1 : 0); (stylecounter < ass_track->n_styles); stylecounter++)
-    {
-        ass_style_t* cur_style = ass_track->styles + stylecounter;
-        p = output_one_style(cur_style, p);
-
-    }
-#endif //ASSUME_STYLE_SUPPORT
-    header->len               = (size_t)(p - pfixed);
 
     // We now insert all cues that include their positioning info
     for (evntcounter = 0; evntcounter < ass_track->n_events; evntcounter++)
@@ -720,6 +705,19 @@ ass_parse_frames(
     {
         cur_frame->duration = cur_event->End - cur_event->Start; // correct last event's duration
     }
+
+    // We now insert header and all Style definitions
+    header->data              = (u_char*)pfixed;
+    len = sizeof(WEBVTT_HEADER_NEWLINES) - 1; vod_memcpy(p, WEBVTT_HEADER_NEWLINES, len);  p+=len;
+#ifdef ASSUME_STYLE_SUPPORT
+    for (stylecounter = (ass_track->default_style ? 1 : 0); (stylecounter < ass_track->n_styles); stylecounter++)
+    {
+        ass_style_t* cur_style = ass_track->styles + stylecounter;
+        p = output_one_style(cur_style, p);
+
+    }
+#endif //ASSUME_STYLE_SUPPORT
+    header->len               = (size_t)(p - pfixed);
 
     // now we got all the info from ass_track, deallocate its memory
     ass_free_track(request_context->pool, ass_track);
