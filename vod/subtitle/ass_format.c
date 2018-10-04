@@ -386,6 +386,63 @@ ass_parse(
     return ret_status;
 }
 
+static char* output_one_style(ass_style_t* cur_style, char* p)
+{
+        int len;
+
+        vod_memcpy(p, FIXED_WEBVTT_STYLE_START_STR, FIXED_WEBVTT_STYLE_START_WIDTH);           p+=FIXED_WEBVTT_STYLE_START_WIDTH;
+        len = vod_strlen(cur_style->Name); vod_memcpy(p, cur_style->Name, len);                p+=len;
+        vod_memcpy(p, FIXED_WEBVTT_STYLE_END_STR, FIXED_WEBVTT_STYLE_END_WIDTH);               p+=FIXED_WEBVTT_STYLE_END_WIDTH;
+        vod_memcpy(p, FIXED_WEBVTT_BRACES_START_STR, FIXED_WEBVTT_BRACES_START_WIDTH);         p+=FIXED_WEBVTT_BRACES_START_WIDTH;
+
+        len = 8; vod_memcpy(p, "color: #", len);                                               p+=len;
+        vod_sprintf((u_char*)p, "%08uxD;\r\n", cur_style->PrimaryColour);                      p+=11;
+
+
+        len = 14; vod_memcpy(p, "font-family: \"", len);                                       p+=len;
+        len = vod_strlen(cur_style->FontName); vod_memcpy(p, cur_style->FontName, len);        p+=len;
+        len = 16; vod_memcpy(p, "\", sans-serif;\r\n", len);                                   p+=len;
+        vod_sprintf((u_char*)p, "font-size: %03uDpx;\r\n", cur_style->FontSize);               p+=19;
+
+        /*if (cur_style->Bold) {
+            len = 20; vod_memcpy(p, "font-weight: bold;\r\n", len);                            p+=len;
+        }
+        if (cur_style->Italic) {
+            len = 21; vod_memcpy(p, "font-style: italic;\r\n", len);                           p+=len;
+        }
+        // This will inherit the OutlineColour (and shadow) if BorderStyle==1, otherwise it inherits PrimaryColour
+        if (cur_style->Underline) {
+            // available styles are: solid | double | dotted | dashed | wavy
+            // available lines are: underline || overline || line-through || blink
+            len = 35; vod_memcpy(p, "text-decoration: solid underline;\r\n", len);             p+=len;
+        }
+        else if (cur_style->StrikeOut) {
+            // available lines are: underline || overline || line-through || blink
+            len = 38; vod_memcpy(p, "text-decoration: solid line-through;\r\n", len);          p+=len;
+        }*/
+
+        if (cur_style->BorderStyle == 1 /*&& ass_track->type == TRACK_TYPE_ASS*/)
+        {
+            // webkit is not supported by all players, stick to adding outline using text-shadow
+            len = 13; vod_memcpy(p, "text-shadow: ", len);                                     p+=len;
+            // add outline in 4 directions with the outline color
+            vod_sprintf((u_char*)p, "#%08uxD -%01uDpx 0px, #%08uxD 0px %01uDpx, #%08uxD 0px -%01uDpx, #%08uxD %01uDpx 0px, #%08uxD %01uDpx %01uDpx 0px;\r\n",
+                         cur_style->OutlineColour, cur_style->Outline,
+                         cur_style->OutlineColour, cur_style->Outline,
+                         cur_style->OutlineColour, cur_style->Outline,
+                         cur_style->OutlineColour, cur_style->Outline,
+                         cur_style->BackColour, cur_style->Shadow, cur_style->Shadow);         p+=102;
+
+        } else {
+            len = 19; vod_memcpy(p, "background-color: #", len);                               p+=len;
+            vod_sprintf((u_char*)p, "%08uxD;\r\n", cur_style->BackColour);                     p+=11;
+        }
+        vod_memcpy(p, FIXED_WEBVTT_BRACES_END_STR, FIXED_WEBVTT_BRACES_END_WIDTH);             p+=FIXED_WEBVTT_BRACES_END_WIDTH;
+        len = 2; vod_memcpy(p, "\r\n", len);                                                   p+=len;
+
+        return p;
+}
+
 /**
  * \brief Parse the .ass/.ssa file, convert to webvtt, output all cues as frames
  *
@@ -488,63 +545,11 @@ ass_parse_frames(
     len = sizeof(WEBVTT_HEADER_NEWLINES) - 1; vod_memcpy(p, WEBVTT_HEADER_NEWLINES, len);  p+=len;
 #ifdef ASSUME_STYLE_SUPPORT
     int stylecounter;
-    bool_t fewstyles = TRUE;
-    for (stylecounter = (ass_track->default_style ? 1 : 0); (stylecounter < ass_track->n_styles) && fewstyles; stylecounter++)
+    for (stylecounter = (ass_track->default_style ? 1 : 0); (stylecounter < ass_track->n_styles); stylecounter++)
     {
         ass_style_t* cur_style = ass_track->styles + stylecounter;
+        p = output_one_style(cur_style, p);
 
-        vod_memcpy(p, FIXED_WEBVTT_STYLE_START_STR, FIXED_WEBVTT_STYLE_START_WIDTH);           p+=FIXED_WEBVTT_STYLE_START_WIDTH;
-        len = vod_strlen(cur_style->Name); vod_memcpy(p, cur_style->Name, len);                p+=len;
-        vod_memcpy(p, FIXED_WEBVTT_STYLE_END_STR, FIXED_WEBVTT_STYLE_END_WIDTH);               p+=FIXED_WEBVTT_STYLE_END_WIDTH;
-        vod_memcpy(p, FIXED_WEBVTT_BRACES_START_STR, FIXED_WEBVTT_BRACES_START_WIDTH);         p+=FIXED_WEBVTT_BRACES_START_WIDTH;
-
-        len = 8; vod_memcpy(p, "color: #", len);                                               p+=len;
-        vod_sprintf((u_char*)p, "%08uxD;\r\n", cur_style->PrimaryColour);                      p+=11;
-
-
-        len = 14; vod_memcpy(p, "font-family: \"", len);                                       p+=len;
-        len = vod_strlen(cur_style->FontName); vod_memcpy(p, cur_style->FontName, len);        p+=len;
-        len = 16; vod_memcpy(p, "\", sans-serif;\r\n", len);                                   p+=len;
-        vod_sprintf((u_char*)p, "font-size: %03uDpx;\r\n", cur_style->FontSize);               p+=19;
-
-        /*if (cur_style->Bold) {
-            len = 20; vod_memcpy(p, "font-weight: bold;\r\n", len);                            p+=len;
-        }
-        if (cur_style->Italic) {
-            len = 21; vod_memcpy(p, "font-style: italic;\r\n", len);                           p+=len;
-        }
-        // This will inherit the OutlineColour (and shadow) if BorderStyle==1, otherwise it inherits PrimaryColour
-        if (cur_style->Underline) {
-            // available styles are: solid | double | dotted | dashed | wavy
-            // available lines are: underline || overline || line-through || blink
-            len = 35; vod_memcpy(p, "text-decoration: solid underline;\r\n", len);             p+=len;
-        }
-        else if (cur_style->StrikeOut) {
-            // available lines are: underline || overline || line-through || blink
-            len = 38; vod_memcpy(p, "text-decoration: solid line-through;\r\n", len);          p+=len;
-        }*/
-
-        if (cur_style->BorderStyle == 1 /*&& ass_track->type == TRACK_TYPE_ASS*/)
-        {
-            // webkit is not supported by all players, stick to adding outline using text-shadow
-            len = 13; vod_memcpy(p, "text-shadow: ", len);                                     p+=len;
-            // add outline in 4 directions with the outline color
-            vod_sprintf((u_char*)p, "#%08uxD -%01uDpx 0px, #%08uxD 0px %01uDpx, #%08uxD 0px -%01uDpx, #%08uxD %01uDpx 0px, #%08uxD %01uDpx %01uDpx 0px;\r\n",
-                         cur_style->OutlineColour, cur_style->Outline,
-                         cur_style->OutlineColour, cur_style->Outline,
-                         cur_style->OutlineColour, cur_style->Outline,
-                         cur_style->OutlineColour, cur_style->Outline,
-                         cur_style->BackColour, cur_style->Shadow, cur_style->Shadow);         p+=102;
-
-        } else {
-            len = 19; vod_memcpy(p, "background-color: #", len);                               p+=len;
-            vod_sprintf((u_char*)p, "%08uxD;\r\n", cur_style->BackColour);                     p+=11;
-        }
-        vod_memcpy(p, FIXED_WEBVTT_BRACES_END_STR, FIXED_WEBVTT_BRACES_END_WIDTH);             p+=FIXED_WEBVTT_BRACES_END_WIDTH;
-        len = 2; vod_memcpy(p, "\r\n", len);                                                   p+=len;
-
-        // check that we are not getting too close to memory allocated. If too many styles, ignore the rest.
-        fewstyles = (8 * (int)(p - pfixed)) < (7 * MAX_STR_SIZE_ALL_WEBVTT_STYLES);
     }
 #endif //ASSUME_STYLE_SUPPORT
     header->len               = (size_t)(p - pfixed);
@@ -552,14 +557,16 @@ ass_parse_frames(
     // We now insert all cues that include their positioning info
     for (evntcounter = 0; evntcounter < ass_track->n_events; evntcounter++)
     {
+        ass_event_t*   prev_event = ass_track->events + evntcounter - 1;
+                       cur_event  = ass_track->events + evntcounter;
+        ass_style_t*   cur_style = ass_track->styles + cur_event->Style; //cur_event->Style will be zero for an unknown Style name
+
+        //p = output_one_event(prev_event, cur_event, cur_style, p);
+
         // Split the event text into multiple chunks so we can insert each chunk as a separate frame in webVTT, all under a single cue
         char*          event_textp[NUM_OF_TAGS_ALLOWED_PER_LINE];
         int            event_len  [NUM_OF_TAGS_ALLOWED_PER_LINE];
         int            margL, margR, margV; // all of these are integer percentage values
-
-        ass_event_t*   prev_event = ass_track->events + evntcounter - 1;
-                       cur_event  = ass_track->events + evntcounter;
-        ass_style_t*   cur_style = ass_track->styles + cur_event->Style; //cur_event->Style will be zero for an unknown Style name
 
         // allocate memory for the chunk pointer itself first
         for (chunkcounter = 0; chunkcounter<NUM_OF_TAGS_ALLOWED_PER_LINE; chunkcounter++)
