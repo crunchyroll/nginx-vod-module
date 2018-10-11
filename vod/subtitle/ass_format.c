@@ -458,7 +458,7 @@ ass_parse(
  * In the following function event == frame == cue. All words point to the text in ASS/media-struct/WebVTT.
  *
  * \output vtt_track->media_info.extra_data   (WEBVTT header + all STYLE cues)
- * \output vtt_track->total_frames_duration   (start of first cue clipped after current segment - start of first non-clipped cue)
+ * \output vtt_track->total_frames_duration   (sum of output frame durations)
  * \output vtt_track->first_frame_index       (event index for very first event output in this segment)
  * \output vtt_track->first_frame_time_offset (Start time of the very first event output in this segment)
  * \output vtt_track->total_frames_size       (Number of String Bytes used in all events that were output)
