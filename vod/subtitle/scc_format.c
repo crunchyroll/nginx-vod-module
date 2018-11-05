@@ -33,7 +33,7 @@
 #define NUM_OF_TAGS_ALLOWED_PER_LINE 1
 
 
-#define TEMP_VERBOSITY
+#define SCC_TEMP_VERBOSITY
 //#define ASSUME_STYLE_SUPPORT
 
 
@@ -297,30 +297,17 @@ static int split_event_text_to_chunks(char *src, int srclen, char **textp, int *
     return chunkidx + 1;
 }
 
-void scc_free_event(scc_track_t *track, int eid)
+void scc_free_track(vod_pool_t* pool, scc_track_t *track, request_context_t* request_context)
 {
-    scc_event_t *event = track->events + eid;
-
-    free(event->Text);
-}
-
-void scc_free_track(vod_pool_t* pool, scc_track_t *track)
-{
-    int i;
-
-    if (track->events) {
-        for (i = 0; i < track->n_events; ++i)
-            scc_free_event(track, i);
-    }
     free(track->events);
-    vod_free(pool, track);
+    return;
 }
 
 static void scc_clean_known_mem(request_context_t* request_context, scc_track_t *scc_track, char** event_textp)
 {
     int chunkidx;
     if (scc_track != NULL)
-        scc_free_track(request_context->pool, scc_track);
+        scc_free_track(request_context->pool, scc_track, request_context);
 
     if (event_textp != NULL)
     {
@@ -383,6 +370,7 @@ scc_reader_init(
     size_t max_metadata_size,
     void** ctx)
 {
+    vod_status_t  ret_val;
     u_char* p = buffer->data;
 
     if (vod_strncmp(p, UTF8_BOM, sizeof(UTF8_BOM) - 1) == 0)
@@ -396,10 +384,12 @@ scc_reader_init(
         return VOD_NOT_FOUND;
     }
 
-    return subtitle_reader_init(
+    ret_val = subtitle_reader_init(
         request_context,
         initial_read_size,
         ctx);
+
+    return ret_val;
 }
 
 static vod_status_t
@@ -418,7 +408,7 @@ scc_parse(
     {
         // scc_track was de-allocated already inside the function, for failure cases
         vod_log_debug0(VOD_LOG_DEBUG_LEVEL, request_context->log, 0,
-            "css_parse failed");
+            "scc_parse_memory failed");
         return VOD_BAD_DATA;
     }
 
@@ -437,7 +427,7 @@ scc_parse(
         source->len, scc_track->maxDuration, scc_track->n_events, ret_status);
 #endif
     // now that we used maxDuration, we need to free the memory used by the track
-    scc_free_track(request_context->pool, scc_track);
+    scc_free_track(request_context->pool, scc_track, request_context);
     return ret_status;
 }
 
@@ -508,14 +498,8 @@ scc_parse_frames(
         return VOD_OK;
     }
 
-    vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-        "[scc_parse_frames(): goint to scc_parse_memory() ");
-
     scc_track = scc_parse_memory((char *)(source->data), source->len, request_context);
 
-    vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-        "]scc_parse_frames(): scc_parse_memory() succeeded, sub_parse succeeded, len of data = %d, maxDuration = %D, nEvents = %d",
-        source->len, scc_track->maxDuration, scc_track->n_events);
     if (scc_track == NULL)
     {
         // scc_track was de-allocated already inside the function, for failure cases
@@ -555,7 +539,7 @@ scc_parse_frames(
     {
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
             "scc_parse_frames: vod_array_init failed");
-        scc_free_track(request_context->pool, scc_track);
+        scc_free_track(request_context->pool, scc_track, request_context);
         return VOD_ALLOC_FAILED;
     }
 
@@ -755,7 +739,7 @@ scc_parse_frames(
     {
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
             "scc_parse_frames: vod_alloc failed");
-        scc_free_track(request_context->pool, scc_track);
+        scc_free_track(request_context->pool, scc_track, request_context);
         return VOD_ALLOC_FAILED;
     }
 
@@ -775,7 +759,7 @@ scc_parse_frames(
     header->len               = (size_t)(p - pfixed);
 
     // now we got all the info from scc_track, deallocate its memory
-    scc_free_track(request_context->pool, scc_track);
+    scc_free_track(request_context->pool, scc_track, request_context);
 
     vtt_track->frame_count        = frames.nelts;
     vtt_track->frames.clip_to     = clip_to;

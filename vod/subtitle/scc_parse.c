@@ -155,13 +155,13 @@ static const char *color_text[MAX_COLOR][2]=
 	{"transparent",""}
 };
 
-void scc_skip_spaces(char **str)
+/*void scc_skip_spaces(char **str)
 {
     char *p = *str;
     while ((*p == ' ') || (*p == '\t'))
         ++p;
     *str = p;
-}
+}*/
 
 //====================================================================================
 
@@ -263,7 +263,7 @@ void handle_pac(unsigned char c1, unsigned char c2, scc_track_t *track, request_
         track->current_font         = new_font;
         event = new_event(track, request_context);
 	}
-#ifdef TEMP_VERBOSITY
+#ifdef SCC_TEMP_VERBOSITY
 	vod_log_error(VOD_LOG_ERR, request_context->log, 0,
 	    "handle_pac: %d %d  nevents=%d, trackrow=%d, col=%d, color=%d, font=%d",
 	    c1, c2, track->n_events, track->cursor_row, track->cursor_column, track->current_color, track->current_font);
@@ -320,10 +320,12 @@ void handle_text_attr(const unsigned char c1, const unsigned char c2, scc_track_
 		int i = c2-0x20;
 		track->current_color = pac2_attribs[i][0];
 		track->current_font  = pac2_attribs[i][1];
+#ifdef SCC_TEMP_VERBOSITY
 		vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-			"  --  Color: %s,  font: %s\n",
+			"  --  Color: %s,  font: %s",
 			color_text[track->current_color][0],
 			font_text[track->current_font]);
+#endif
 		// Mid-row codes should put a non-transparent space at the current position
 		// and advance the cursor
 		//so use write_char
@@ -425,11 +427,11 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 
 	if (command == COM_ROLLUP2 || command == COM_ROLLUP3 || command == COM_ROLLUP4)
 		command=COM_FAKE_RULLUP1;
-
+#ifdef SCC_TEMP_VERBOSITY
 	vod_log_error(VOD_LOG_ERR, request_context->log, 0,
 	    "BEGIN{ handle_command(): %0d %0d (%s), Position=%d,%d  n_events=%d",
 	    c1, c2, command_type[command], track->cursor_row, track->cursor_column, track->n_events);
-
+#endif
     scc_event_t * event = get_writing_buffer(track, request_context);
 	switch (command)
 	{
@@ -502,8 +504,10 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 			vod_log_error(VOD_LOG_ERR, request_context->log, 0, "Command not yet implemented.");
 			break;
 	}
+#ifdef SCC_TEMP_VERBOSITY
 	vod_log_error(VOD_LOG_ERR, request_context->log, 0, "}END handle_command(): Position=%d,%d n_events=%d, color=%d font=%d",
 		track->cursor_row, track->cursor_column, track->n_events, track->current_color, track->current_font);
+#endif
 }
 
 
@@ -513,7 +517,7 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 int disCommand(unsigned char hi, unsigned char lo, scc_track_t *track, request_context_t* request_context)
 {
 	int wrote_to_screen=0;
-#if TEMP_VERBOSITY
+#ifdef SCC_TEMP_VERBOSITY
     vod_log_error(VOD_LOG_ERR, request_context->log, 0,
         "disCommand(): hi = %d, lo = %d", hi, lo);
 #endif
@@ -599,7 +603,7 @@ static int scc_process_line(scc_track_t *track, const char *str, request_context
 
 	length = vod_strlen(str);
 
-#if TEMP_VERBOSITY
+#ifdef SCC_TEMP_VERBOSITY
     vod_log_error(VOD_LOG_ERR, request_context->log, 0,
         "line_time= %D, ndp=%d, lengthstr=%d, str = %s", track->cue_time, ndp==TRUE, length, str);
 #endif
@@ -707,7 +711,7 @@ static int scc_process_text(scc_track_t *track, char *str, request_context_t* re
 }
 
 
-/* If private data is NULL, then only XDS will be processed */
+/* Allocates scc_track_t, assumes caller will free the returned pointer. Cleans up everything else allocated internally. */
 scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request_context)
 {
     int bfailed;
@@ -720,7 +724,7 @@ scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request
     char *pcopy = vod_alloc(request_context->pool, length+1);
     if (pcopy == NULL)
     {
-        vod_log_debug0(VOD_LOG_DEBUG_LEVEL, request_context->log, 0,
+        vod_log_error(VOD_LOG_ERR, request_context->log, 0,
             "scc_parse_memory(): vod_alloc of pcopy failed");
         return NULL;
     }
@@ -730,7 +734,7 @@ scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request
     scc_track_t *track = vod_calloc(request_context->pool, sizeof(scc_track_t));
     if (track == NULL)
     {
-        vod_log_debug0(VOD_LOG_DEBUG_LEVEL, request_context->log, 0,
+        vod_log_error(VOD_LOG_ERR, request_context->log, 0,
             "scc_parse_memory(): vod_callocof 608_context failed");
         vod_free(request_context->pool, pcopy);
         return NULL;
@@ -739,16 +743,14 @@ scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request
 
     // destructive parsing of pcopy
     bfailed = scc_process_text(track, pcopy, request_context);
+    vod_free(request_context->pool, pcopy);   // not needed anymore whether parsing succeeded or failed
     if (bfailed == -1)
     {
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-            "process_text failed");
+            "scc_parse_memory(): process_text failed");
+        return NULL;
 
     }
-    vod_free(request_context->pool, pcopy); // not needed anymore either way
 
-    vod_free(request_context->pool, track); // not needed anymore whether parsing succeeded or failed
-    vod_free(request_context->pool, pcopy);   // not needed anymore whether parsing succeeded or failed
-
-	return track; //i
+	return track;
 }
