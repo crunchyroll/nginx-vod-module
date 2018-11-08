@@ -73,7 +73,7 @@ static int scc_strncasecmp(const char *s1, const char *s2, size_t n)
 static const int rowdata[] = {11,-1,1,2,3,4,12,13,14,15,5,6,7,8,9,10};
 // Relationship between the first PAC byte and the row number
 
-static const unsigned char pac2_attribs[][3] = // Color, font, ident
+static const unsigned char pac2_attribs[][3] = // Color, font, indent
 {
 	{ COL_WHITE, FONT_REGULAR, 0 },  // 0x40 || 0x60
 	{ COL_WHITE, FONT_UNDERLINED, 0 },  // 0x41 || 0x61
@@ -109,6 +109,7 @@ static const unsigned char pac2_attribs[][3] = // Color, font, ident
 	{ COL_WHITE, FONT_UNDERLINED, 28 }  // 0x5f || 0x7f
 };
 
+#ifdef SCC_TEMP_VERBOSITY
 static const char *command_type[] =
 {
 	"Unknown",
@@ -154,6 +155,7 @@ static const char *color_text[MAX_COLOR][2]=
 	{"black",""},
 	{"transparent",""}
 };
+#endif
 
 /*void scc_skip_spaces(char **str)
 {
@@ -201,15 +203,16 @@ scc_event_t *new_event(scc_track_t *track, request_context_t* request_context)
     int i;
 	for (i=0;i<15;i++)
 	{
-		memset(event->characters[i], ' ', SCC_608_SCREEN_WIDTH);
-		event->characters[i][SCC_608_SCREEN_WIDTH] = 0; // char in col 32 is zero, space otherwise
-		memset(event->colors[i], COL_CYAN, SCC_608_SCREEN_WIDTH + 1);
-		memset(event->fonts[i], FONT_REGULAR, SCC_608_SCREEN_WIDTH + 1);
+		memset(event->characters[i], 0, SCC_608_SCREEN_WIDTH+1);
+		memset(event->italic[i],     0, SCC_608_SCREEN_WIDTH+1);
+		memset(event->underline[i],  0, SCC_608_SCREEN_WIDTH+1);
 		event->row_used[i] = 0;
 	}
+	event->color           = COL_WHITE;
+	event->font            = FONT_REGULAR;
+	event->bk_color        = COL_CYAN;
 	event->len_text        = 0;
 	event->event_text_done = EVENT_TEXT_OPEN;
-	event->bk_color        = COL_CYAN;
 	event->start_time      = event->end_time
 	                       = track->cue_time;
 	return event;
@@ -237,17 +240,23 @@ void handle_pac(unsigned char c1, unsigned char c2, scc_track_t *track, request_
 		}
 	}
 
-	int new_cursor_row          = row - 1; // Since the array is 0 based
-	int new_cursor_col          = pac2_attribs[c2][2];
-	unsigned int new_color      = pac2_attribs[c2][0];
-	unsigned int new_font       = pac2_attribs[c2][1];
-    scc_event_t * event = get_writing_buffer(track, request_context);
+	track->current_italic    = (pac2_attribs[c2][1] == FONT_ITALICS)    || (pac2_attribs[c2][1] == FONT_UNDERLINED_ITALICS);
+	track->current_underline = (pac2_attribs[c2][1] == FONT_UNDERLINED) || (pac2_attribs[c2][1] == FONT_UNDERLINED_ITALICS);
 
-	if (new_cursor_row  != track->cursor_row    ||
-	    new_cursor_col  != track->cursor_column ||
-	    new_color       != track->current_color ||
-	    new_font        != track->current_font  ||
-	    (track->n_events == 0)                  ||
+	int           new_cursor_row = row - 1; // Since the array is 0 based
+	int           new_cursor_col = pac2_attribs[c2][2];
+	unsigned char new_color      = pac2_attribs[c2][0];
+	unsigned char new_bk_color   = COL_CYAN;    // TODO: read from PACs
+    scc_event_t * event = get_writing_buffer(track, request_context);
+#ifdef SCC_TEMP_VERBOSITY
+	vod_log_error(VOD_LOG_ERR, request_context->log, 0,
+	"handle_pac() c1=%d, c2=%d, new_cursor_row=%d, track_cursor_row=%d, new_col=%d, track_cursor_col=%d, new_color=%d, track_color=%d",
+	c1, c2, new_cursor_row, track->cursor_row, new_cursor_col, track->cursor_column, new_color, track->current_color);
+#endif
+	if (((new_cursor_row != track->cursor_row) && (new_cursor_row  != (track->cursor_row+1)))  ||
+	    new_color        != track->current_color    ||
+	    new_bk_color     != track->current_bk_color ||
+	    (track->n_events == 0)                      ||
 	    (event != NULL	&&  event->event_text_done == EVENT_TEXT_DONE))
 	{
 	    // close previous event, open new one so we store them as 2 separate text cues with different positions
@@ -260,33 +269,42 @@ void handle_pac(unsigned char c1, unsigned char c2, scc_track_t *track, request_
         track->cursor_row           = new_cursor_row;
         track->cursor_column        = new_cursor_col;
         track->current_color        = new_color;
-        track->current_font         = new_font;
+        track->current_bk_color     = new_bk_color;
         event = new_event(track, request_context);
+	}
+
+	if ((new_cursor_col !=  track->cursor_column   )     &&
+	    (new_cursor_col != (track->cursor_column+1))     &&
+	    (new_cursor_row == (track->cursor_row+1   )))
+	{
+	    // new line in the same event, just update track values
+	    event->characters[track->cursor_row][SCC_608_SCREEN_WIDTH] = '\n';
+        track->cursor_row           = new_cursor_row;
+        track->cursor_column        = new_cursor_col;
 	}
 #ifdef SCC_TEMP_VERBOSITY
 	vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-	    "handle_pac: %d %d  nevents=%d, trackrow=%d, col=%d, color=%d, font=%d",
-	    c1, c2, track->n_events, track->cursor_row, track->cursor_column, track->current_color, track->current_font);
+	    "handle_pac: %d %d  nevents=%d, trackrow=%d, col=%d, color=%d, italic=%d",
+	    c1, c2, track->n_events, track->cursor_row, track->cursor_column, track->current_color, track->current_italic);
 #endif
 }
 
-void delete_to_end_of_row(scc_track_t *track, request_context_t* request_context)
+/*void delete_to_end_of_row(scc_track_t *track, request_context_t* request_context)
 {
     scc_event_t *event = get_writing_buffer(track, request_context);
     if (event == NULL || event->event_text_done == EVENT_TEXT_DONE)
         return; // do nothing
 
     int i;
-    scc_event_t *cur_event = get_writing_buffer(track, request_context);
     for (i = track->cursor_column; i <= SCC_608_SCREEN_WIDTH-1; i++)
     {
         // TODO: This can change the 'used' situation of a column, so we'd
         // need to check and correct.
-        cur_event->characters[track->cursor_row][i] = ' ';
-        cur_event->colors[track->cursor_row][i] = COL_CYAN;
-        cur_event->fonts[track->cursor_row][i] = track->current_font;
+        event->characters[track->cursor_row][i] = 0;
     }
-}
+    event->italic    [track->cursor_row][track->cursor_column] = 0;
+    event->underline [track->cursor_row][track->cursor_column] = 0;
+}*/
 
 void write_char(const unsigned char c, scc_track_t *track, request_context_t* request_context)
 {
@@ -295,9 +313,9 @@ void write_char(const unsigned char c, scc_track_t *track, request_context_t* re
         return; // do nothing
     else
     {
-        event->characters[track->cursor_row][track->cursor_column] = c;
-        event->colors[track->cursor_row][track->cursor_column] = track->current_color;
-        event->fonts[track->cursor_row][track->cursor_column] = track->current_font;
+        event->characters[track->cursor_row][track->cursor_column] = c; // TODO: handle extended charsets
+        event->italic    [track->cursor_row][track->cursor_column] = track->current_italic;
+        event->underline [track->cursor_row][track->cursor_column] = track->current_underline;
         event->row_used[track->cursor_row] = 1;
         event->len_text++;
     }
@@ -309,47 +327,50 @@ void write_char(const unsigned char c, scc_track_t *track, request_context_t* re
 /* Handle MID-ROW CODES. */
 void handle_text_attr(const unsigned char c1, const unsigned char c2, scc_track_t *track, request_context_t* request_context)
 {
-	vod_log_error(VOD_LOG_ERR, request_context->log, 0, "608: text_attr: %d %d", c1, c2);
-	if ( ((c1!=0x11 && c1!=0x19) ||
-		(c2<0x20 || c2>0x2f)))
+	if ((c1!=0x11 && c1!=0x19) || (c2<0x20 || c2>0x2f))
 	{
-		vod_log_error(VOD_LOG_ERR, request_context->log, 0, "This is not a text attribute!");
+		vod_log_error(VOD_LOG_ERR, request_context->log, 0, "This is not a text attribute! c1=%d, c2=%d", c1, c2);
 	}
 	else
 	{
 		int i = c2-0x20;
-		track->current_color = pac2_attribs[i][0];
-		track->current_font  = pac2_attribs[i][1];
+		track->current_color     = pac2_attribs[i][0];
+		track->current_bk_color  = COL_CYAN;
+		track->current_italic    = (pac2_attribs[i][1] == FONT_ITALICS)    || (pac2_attribs[i][1] == FONT_UNDERLINED_ITALICS);
+		track->current_underline = (pac2_attribs[i][1] == FONT_UNDERLINED) || (pac2_attribs[i][1] == FONT_UNDERLINED_ITALICS);
 #ifdef SCC_TEMP_VERBOSITY
 		vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-			"  --  Color: %s,  font: %s",
+			"  --  Color: %s,  underline|italics: %s",
 			color_text[track->current_color][0],
-			font_text[track->current_font]);
+			font_text[(track->underline*2) + track->current_italics]);
 #endif
 		// Mid-row codes should put a non-transparent space at the current position
 		// and advance the cursor
-		//so use write_char
-		write_char(0x20, track, request_context);
+		// so use write_char
+		write_char(SCC_UNUSED_CHAR, track, request_context);
 	}
 }
 
 void handle_single(const unsigned char c1, scc_track_t *track, request_context_t* request_context)
 {
 	if (c1<0x20)
-		return; // We don't allow special stuff here
-
+		return; // We don't allow teleprinting stuff here
+#ifdef SCC_TEMP_VERBOSITY
 	vod_log_error(VOD_LOG_ERR, request_context->log, 0, "handle_single() writing char: %c", c1);
+#endif
 	write_char (c1,track, request_context);
 }
 
 // CEA-608, Anex F 1.1.1. - Character Set Table / Special Characters
-void handle_double(const unsigned char c1, const unsigned char c2, scc_track_t *track, request_context_t* request_context)
+void handle_special_doublebytes(const unsigned char c1, const unsigned char c2, scc_track_t *track, request_context_t* request_context)
 {
 	unsigned char c;
 	if (c2>=0x30 && c2<=0x3f)
 	{
 		c=c2 + 0x50; // So if c>=0x80 && c<=0x8f, it comes from here
-		vod_log_error(VOD_LOG_ERR, request_context->log, 0, "handle_double(): %d %d  -->  %c", c1, c2, c);
+#ifdef SCC_TEMP_VERBOSITY
+		vod_log_error(VOD_LOG_ERR, request_context->log, 0, "handle_special_doublebytes(): %d %d  -->  %c", c1, c2, c);
+#endif
 		write_char(c, track, request_context);
 	}
 }
@@ -357,10 +378,11 @@ void handle_double(const unsigned char c1, const unsigned char c2, scc_track_t *
 /* Process EXTENDED CHARACTERS */
 unsigned char handle_extended(unsigned char hi, unsigned char lo, scc_track_t *track, request_context_t* request_context)
 {
-	// For lo values between 0x20-0x3f
 	unsigned char c=0;
-
+#ifdef SCC_TEMP_VERBOSITY
 	vod_log_error(VOD_LOG_ERR, request_context->log, 0, "handle_extended(): %d %d", hi, lo);
+#endif
+	// For lo values between 0x20-0x3f
 	if (lo>=0x20 && lo<=0x3f && (hi==0x12 || hi==0x13))
 	{
 		switch (hi)
@@ -375,8 +397,8 @@ unsigned char handle_extended(unsigned char hi, unsigned char lo, scc_track_t *t
 		// This column change is because extended characters replace
 		// the previous character (which is sent for basic decoders
 		// to show something similar to the real char)
-		if (track->cursor_column>0)
-			track->cursor_column--;
+		//if (track->cursor_column>0)
+        //    track->cursor_column--;
 
 		write_char(c, track, request_context);
 	}
@@ -439,7 +461,7 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 			if (event != NULL && track->cursor_column>0)
 			{
 				track->cursor_column--;
-				event->characters[track->cursor_row][track->cursor_column] = ' ';
+				event->characters[track->cursor_row][track->cursor_column] = 0;
 			}
 			break;
 		case COM_TABOFFSET1:
@@ -474,9 +496,11 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 		        // close last event if not done
 		        event->event_text_done = EVENT_TEXT_DONE;
             }
-            track->cursor_row = track->cursor_column = 0;
-            track->current_color = pac2_attribs[0][0];
-            track->current_font  = pac2_attribs[0][1];
+            track->cursor_row        = track->cursor_column = 0;
+            track->current_color     = COL_WHITE;
+            track->current_bk_color  = COL_CYAN;
+            track->current_italic    = 0;
+            track->current_underline = 0;
 			break;
 		case COM_ENDOFCAPTION:
 		    if (event != NULL && event->event_text_done == EVENT_TEXT_OPEN)
@@ -487,9 +511,6 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 		    // TODO: make sure you check this flag when writing char
 			break;
 		case COM_DELETETOENDOFROW:
-		    if (track->n_events > 0)
-			    delete_to_end_of_row(track, request_context);
-			break;
 		case COM_FAKE_RULLUP1:
 		case COM_ROLLUP2:
 		case COM_ROLLUP3:
@@ -505,8 +526,8 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 			break;
 	}
 #ifdef SCC_TEMP_VERBOSITY
-	vod_log_error(VOD_LOG_ERR, request_context->log, 0, "}END handle_command(): Position=%d,%d n_events=%d, color=%d font=%d",
-		track->cursor_row, track->cursor_column, track->n_events, track->current_color, track->current_font);
+	vod_log_error(VOD_LOG_ERR, request_context->log, 0, "}END handle_command(): Position=%d,%d n_events=%d, color=%d italic=%d",
+		track->cursor_row, track->cursor_column, track->n_events, track->current_color, track->current_italic);
 #endif
 }
 
@@ -514,9 +535,8 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 
 /* Handle Command, special char or attribute
  * Returns 1 if something was written to screen, 0 otherwise */
-int disCommand(unsigned char hi, unsigned char lo, scc_track_t *track, request_context_t* request_context)
+void disCommand(unsigned char hi, unsigned char lo, scc_track_t *track, request_context_t* request_context)
 {
-	int wrote_to_screen=0;
 #ifdef SCC_TEMP_VERBOSITY
     vod_log_error(VOD_LOG_ERR, request_context->log, 0,
         "disCommand(): hi = %d, lo = %d", hi, lo);
@@ -527,50 +547,49 @@ int disCommand(unsigned char hi, unsigned char lo, scc_track_t *track, request_c
 	switch (hi)
 	{
 		case 0x10:
-			if (lo>=0x40 && lo<=0x5f)
+			if (lo>=0x40 && lo<=0x5f)                                // row 11 PAC (ch 1&3)
 				handle_pac(hi, lo, track, request_context);
 			break;
 		case 0x11:
-			if (lo>=0x20 && lo<=0x2f)
+			if (lo>=0x20 && lo<=0x2f)                                // mid-row color/underline PAC (ch 1&3)
 				handle_text_attr(hi, lo, track, request_context);
-			if (lo>=0x30 && lo<=0x3f)
+			if (lo>=0x30 && lo<=0x3f)                                // Special Characters
 			{
-				wrote_to_screen=1;
-				handle_double(hi, lo, track, request_context);
+				handle_special_doublebytes(hi, lo, track, request_context);
 			}
-			if (lo>=0x40 && lo<=0x7f)
+			if (lo>=0x40 && lo<=0x7f)                                // rows 01/02 PAC (ch 1&3)
 				handle_pac(hi, lo, track, request_context);
 			break;
 		case 0x12:
 		case 0x13:
-			if (lo>=0x20 && lo<=0x3f)
+			if (lo>=0x20 && lo<=0x3f)                                // Extended Characters
 			{
-				wrote_to_screen = handle_extended(hi, lo, track, request_context);
+				handle_extended(hi, lo, track, request_context);
 			}
-			if (lo>=0x40 && lo<=0x7f)
+			if (lo>=0x40 && lo<=0x7f)                                // rows 03/04 PAC (ch 1&3)
 				handle_pac(hi, lo, track, request_context);
 			break;
 		case 0x14:
 		case 0x15:
-			if (lo>=0x20 && lo<=0x2f)
+			if (lo>=0x20 && lo<=0x2f)                                // Global Codes PAC (ch 1&3)
 				handle_command(hi, lo, track, request_context);
-			if (lo>=0x40 && lo<=0x7f)
+			if (lo>=0x40 && lo<=0x7f)                                // rows 05/06 and 14/15 PAC (ch 1&3)
 				handle_pac(hi, lo, track, request_context);
 			break;
 		case 0x16:
-			if (lo>=0x40 && lo<=0x7f)
+			if (lo>=0x40 && lo<=0x7f)                                // rows 07/08 PAC (ch 1&3)
 				handle_pac(hi, lo, track, request_context);
 			break;
 		case 0x17:
-			if (lo>=0x21 && lo<=0x23)
+			if (lo>=0x21 && lo<=0x23)                                // Tab Offsets 1,2,3 (ch 1&3)
 				handle_command(hi, lo, track, request_context);
-			if (lo>=0x2e && lo<=0x2f)
+			if (lo>=0x2e && lo<=0x2f)                                // mid-row Black and BlackUnderline PAC (ch 1&3)
 				handle_text_attr(hi, lo, track, request_context);
-			if (lo>=0x40 && lo<=0x7f)
+			if (lo>=0x40 && lo<=0x7f)                                // rows 09/10 PAC (ch 1&3)
 				handle_pac(hi, lo, track, request_context);
 			break;
 	}
-	return wrote_to_screen;
+	return;
 }
 
 
@@ -625,16 +644,9 @@ static int scc_process_line(scc_track_t *track, const char *str, request_context
             continue;
 
         if (hi>=0x10 && hi<=0x1F) // Non-character code or special/extended char
-            // http://www.theneitherworld.com/mcpoodle/SCC_TOOLS/DOCS/CC_CODES.HTML
-            // http://www.theneitherworld.com/mcpoodle/SCC_TOOLS/DOCS/CC_CHARS.HTML
+        // http://www.theneitherworld.com/mcpoodle/SCC_TOOLS/DOCS/CC_CODES.HTML
+        // http://www.theneitherworld.com/mcpoodle/SCC_TOOLS/DOCS/CC_CHARS.HTML
         {
-            // We were writing characters before, start a new line for
-            // diagnostic output from disCommand()
-            if (track->textprinted == 1 )
-            {
-                track->textprinted = 0;
-            }
-
             if (track->last_c1 == hi && track->last_c2 == lo)
             {
                 // Duplicate dual code, discard. Correct to do it only in
@@ -658,11 +670,6 @@ static int scc_process_line(scc_track_t *track, const char *str, request_context
             //" GOING to handle 2 characters: %d %d, i=%d", hi, lo, i);
             if (hi>=0x20) // Standard characters (always in pairs)
             {
-                if( track->textprinted == 0 )
-                {
-                    track->textprinted = 1;
-                }
-
                 handle_single(hi, track, request_context);
                 handle_single(lo, track, request_context);
 

@@ -15,6 +15,7 @@
 
 #define SCC_608_SCREEN_WIDTH  32
 #define SCC_NUM_OF_STYLES_INSERTED    10
+#define SCC_UNUSED_CHAR  0
 
 // globals
 extern media_format_t scc_format;
@@ -30,11 +31,13 @@ enum cc_text_done
  * text is stored as-is, style overrides gets applied later.
  */
 typedef struct scc_event {
-	unsigned char      characters[15][33];
-	unsigned char      colors    [15][33];
-	unsigned char      fonts     [15][33]; // Extra char at the end for a 0
+	unsigned char      characters[15][33]; // Extra char at the end for potential '\n'
+	unsigned char      italic    [15][33];
+	unsigned char      underline [15][33];
+	         char      row_used  [15];     // Any data in row?
+	unsigned char      color;
+	unsigned char      font;
 	unsigned char      bk_color;
-	int                row_used  [15];     // Any data in row?
 	int                len_text;           // number of visible characters added to this screen
 	enum cc_text_done  event_text_done;    // when set to EVENT_TEXT_DONE, no further text is added. EOC was received already.
 
@@ -65,8 +68,9 @@ typedef struct scc_track {
 	int             cursor_row, cursor_column;
 	unsigned char   last_c1, last_c2;
 	unsigned char   current_color;        // Color we are currently using to write
-	unsigned char   current_font;         // Font we are currently using to write
-	int             textprinted;
+	unsigned char   current_bk_color;     // Background color we are currently using to write
+	unsigned char   current_italic;       // Italic flag we are currently using to write
+	unsigned char   current_underline;    // Underline flag we are currently using to write
 
     // TODO: remove when parsed correctly
     int             PlayResX;
@@ -75,25 +79,32 @@ typedef struct scc_track {
 
 scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request_context);
 
-typedef enum ccx_decoder_608_color_code
+enum scc_alignment
 {
-	COL_WHITE = 0,
-	COL_GREEN = 1,
-	COL_BLUE = 2,
-	COL_CYAN = 3,
-	COL_RED = 4,
-	COL_YELLOW = 5,
-	COL_MAGENTA = 6,
+    SCC_ALIGN_CENTER = 0,
+    SCC_ALIGN_LEFT   = 1,
+    SCC_ALIGN_RIGHT  = 2
+} scc_alignment_t;
+
+enum scc_color_code
+{
+	COL_WHITE       = 0,
+	COL_GREEN       = 1,
+	COL_BLUE        = 2,
+	COL_CYAN        = 3,
+	COL_RED         = 4,
+	COL_YELLOW      = 5,
+	COL_MAGENTA     = 6,
 	COL_USERDEFINED = 7,
-	COL_BLACK = 8,
+	COL_BLACK       = 8,
 	COL_TRANSPARENT = 9
-} ccx_decoder_608_color_code;
+} scc_color_code_t;
 
 enum font_bits
 {
-	FONT_REGULAR = 0,
-	FONT_ITALICS = 1,
-	FONT_UNDERLINED = 2,
+	FONT_REGULAR            = 0,
+	FONT_ITALICS            = 1,
+	FONT_UNDERLINED         = 2,
 	FONT_UNDERLINED_ITALICS = 3
 };
 
