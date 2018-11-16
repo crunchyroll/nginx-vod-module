@@ -32,90 +32,182 @@
 #define NUM_OF_INLINE_TAGS_SUPPORTED 3     //ibu
 
 
-//#define SCC_TEMP_VERBOSITY
+#define SCC_TEMP_VERBOSITY
 //#define ASSUME_STYLE_SUPPORT
 
+static const int utf8_len[80] = {
+    2,   // Registered
+    2,   // Ring / Angestrom
+    2,   // Fraction Half
+    2,   // Latin Starting Question Mark
+    2,   // Trade Mark
+    1,   // Cent Sign ??
+    1,   // Pound Sign
+    3,   // Eighth Music Note
+    2,   // Letter a with grave
+    1,   // Space
+    2,   // Letter e with grave
+    2,   // Letter a with circumflex
+    2,   // Letter e with circumflex
+    2,   // Letter i with circumflex
+    2,   // Letter o with circumflex
+    2,   // Letter u with circumflex
 
-typedef enum {
-    TAG_TYPE_NEWLINE_SMALL  = 0,
-    TAG_TYPE_NEWLINE_LARGE  = 1,
-    TAG_TYPE_AMPERSANT      = 2,
-    TAG_TYPE_SMALLERTHAN    = 3,
-    TAG_TYPE_BIGGERTHAN     = 4,
+    2,   // Letter A with acute
+    2,   // Letter E with acute
+    2,   // Letter O with acute
+    2,   // Letter U with acute
+    2,   // Letter U with diaeresis
+    2,   // Letter u with diaeresis
+    2,   // Inverted apostrophe
+    2,   // Inverted exclamation mark
+    2,   // Astresk
+    2,   // Apostrophe
+    3,   // Horizontal bar
+    2,   // Copyright sign
+    3,   // Service mark
+    3,   // Bullet
+    3,   // Left double quotation
+    3,   // Right double quotation
 
-    TAG_TYPE_OPEN_BRACES    = 5,
-    TAG_TYPE_CLOSE_BRACES   = 6,
+    2,   // Letter A with grave
+    2,   // Letter A with circumflex
+    2,   // Letter C with cedilla
+    2,   // Letter E with grave
+    2,   // Letter E with circumflex
+    2,   // Letter E with diaeresis
+    2,   // Letter e with diaeresis
+    2,   // Letter I with circumflex
+    2,   // Letter I with diaeresis
+    2,   // Letter i with diaeresis
+    2,   // Letter o with circumflex
+    2,   // Letter U with grave
+    2,   // Letter u with grave
+    2,   // Letter U with circumflex
+    3,   // Much less than
+    3,   // Much greater than
 
-// all starts should be in even index, all ends should be in odd index. This logic is sccumed
-    TAG_TYPE_IBU_DATUM      = 7,
-    TAG_TYPE_ITALIC_END     = 7,
-    TAG_TYPE_ITALIC_START   = 8,
-    TAG_TYPE_BOLD_END       = 9,
-    TAG_TYPE_BOLD_START     = 10,
-    TAG_TYPE_UNDER_END      = 11,
-    TAG_TYPE_UNDER_START    = 12,
+    2,   // Letter A with tilde
+    2,   // Letter a with tilde
+    2,   // Letter I with acute
+    2,   // Letter I with grave
+    2,   // Letter i with grave
+    2,   // Letter O with grave
+    2,   // Letter o with grave
+    2,   // Letter O with tilde
+    2,   // Letter o with tilde
+    1,   // Left curly bracket
+    1,   // Right curly bracket
+    1,   // Backslash
+    1,   // Circumflex accent
+    1,   // Low line (underscore)
+    2,   // Broken bar
+    1,   // Tilde
 
-    TAG_TYPE_UNKNOWN_TAG    = 13, // has to be after all known braces types
-    TAG_TYPE_NONE           = 14
-} scc_tag_idx_t;
-static const char* const tag_strings[TAG_TYPE_NONE] = {
-    "\\n",
-    "\\N",
-    "&",
-    "<",
-    ">",
-	
-    "{",
-    "}",
-
-    "\\i0",
-    "\\i",
-    "\\b0",
-    "\\b",
-    "\\u0",
-    "\\u",
-
-    "\\"
+    2,   // Letter A with diaeresis
+    2,   // Letter a with diaeresis
+    2,   // Letter O with diaeresis
+    2,   // Letter o with diaeresis
+    2,   // Small letter sharp s
+    2,   // Yen sign
+    2,   // Currency sign
+    1,   // Vertical line
+    2,   // Letter A with ring above
+    2,   // Letter a with ring above
+    2,   // Letter O with a stroke
+    2,   // Letter o with a stroke
+    3,   // Box top left
+    3,   // Box top right
+    3,   // Box bot left
+    3    // Box bot right
 };
-static const int tag_string_len[TAG_TYPE_NONE][2] = {
-    // index 0 is size of ASS tag, index 1 is size of replacement webVTT tag
-    {2,2},
-    {2,2},
-    {1,5},
-    {1,4},
-    {1,4},
 
-    {1,0},
-    {1,0},
+static const char* utf8_code[80] = {
+    "\xc2\xae",     // Registered sign
+    "\xc2\xb0",     // Ring / Angestrom
+    "\xc2\xbd",     // Fraction Half
+    "\xc2\xbf",     // Latin Starting Question Mark
+    "\x21\x22",     // Trade Mark
+    "\xa2",         // Cent Sign ??
+    "\xa3",         // Pound Sign
+    "\xe2\x99\xaa", // Eighth Music Note
+    "\xc3\xa0",     // Letter a with grave
+    " ",            // Space ??
+    "\xc3\xa8",     // Letter e with grave
+    "\xc3\xa2",     // Letter a with circumflex
+    "\xc3\xaa",     // Letter e with circumflex
+    "\xc3\xae",     // Letter i with circumflex
+    "\xc3\xb4",     // Letter o with circumflex
+    "\xc3\xbb",     // Letter u with circumflex
 
-    {3,4},
-    {2,3},
-    {3,4},
-    {2,3},
-    {3,4},
-    {2,3},
+    "\xc3\x81",     // Letter A with acute
+    "\xc3\x89",     // Letter E with acute
+    "\xc3\x93",     // Letter O with acute
+    "\xc3\x9a",     // Letter U with acute
+    "\xc3\x9c",     // Letter U with diaeresis
+    "\xc3\xbc",     // Letter u with diaeresis
+    "\xca\xbb",     // Inverted apostrophe
+    "\xc2\xa1",     // Inverted exclamation mark
+    "\x2a",         // Asterisk
+    "\xc3\xbc",     // Apostrophe
+    "\xe2\x80\x95", // Horizontal bar
+    "\xc2\xa9",     // Copyright sign
+    "\xe2\x84\xa0", // Service mark
+    "\xe2\x80\xa2", // Bullet
+    "\xe2\x80\x9c", // Left double quotation
+    "\xe2\x80\x9d", // Right double quotation
 
-    {1,0}
+    "\xc3\x80",     // Letter A with grave
+    "\xc3\x82",     // Letter A with circumflex
+    "\xc3\x87",     // Letter C with cedilla
+    "\xc3\x88",     // Letter E with grave
+    "\xc3\x8a",     // Letter E with circumflex
+    "\xc3\x8b",     // Letter E with diaeresis
+    "\xc3\xab",     // Letter e with diaeresis
+    "\xc3\x8e",     // Letter I with circumflex
+    "\xc3\x8f",     // Letter I with diaeresis
+    "\xc3\xaf",     // Letter i with diaeresis
+    "\xc3\xb4",     // Letter o with circumflex
+    "\xc3\x99",     // Letter U with grave
+    "\xc3\xb9",     // Letter u with grave
+    "\xc3\x9b",     // Letter U with circumflex
+    "\xe2\x89\xaa", // Much less than
+    "\xe2\x89\xab", // Much greater than
+
+    "\xc3\x83",     // Letter A with tilde
+    "\xc3\xa3",     // Letter a with tilde
+    "\xc3\x8d",     // Letter I with grave
+    "\xc3\x8c",     // Letter I with acute
+    "\xc3\xac",     // Letter i with grave
+    "\xc3\x92",     // Letter O with grave
+    "\xc3\xb2",     // Letter o with grave
+    "\xc3\x95",     // Letter O with tilde
+    "\xc3\xb5",     // Letter o with tilde
+    "\x7b",         // Left curly bracket
+    "\x7d",         // Right curly bracket
+    "\x5c",         // Backslash
+    "\x5e",         // Circumflex accent
+    "\x5f",         // Low line (underscore)
+    "\xc2\xa6",     // Broken bar
+    "\x7e",         // Tilde
+
+    "\xc3\x84",     // Letter A with diaeresis
+    "\xc3\xa4",     // Letter a with diaeresis
+    "\xc3\x96",     // Letter O with diaeresis
+    "\xc3\xb6",     // Letter o with diaeresis
+    "\xc3\x9f",     // Small letter sharp s
+    "\xc2\xa5",     // Yen sign
+    "\xc2\xa4",     // Currency sign
+    "\x7c",         // Vertical line
+    "\xc3\x85",     // Letter A with ring above
+    "\xc3\xa5",     // Letter a with ring above
+    "\xc3\x98",     // Letter O with a stroke
+    "\xc3\xb8",     // Letter o with a stroke
+    "\xe2\x94\x8f", // Box top left
+    "\xe2\x94\x93", // Box top right
+    "\xe2\x94\x97", // Box bot left
+    "\xe2\x94\x9b"  // Box bot right
 };
-/*static const char* tag_replacement_strings[TAG_TYPE_NONE] = {
-    "\r\n",
-    "\r\n",
-    "&amp;",
-    "&lt;",
-    "&gt;",
-
-    "",
-    "",
-
-    "</i>",
-    "<i>",
-    "</b>",
-    "<b>",
-    "</u>",
-    "<u>",
-
-    ""
-};*/
 
 void scc_swap_events(scc_event_t* nxt, scc_event_t* cur)
 {
@@ -144,21 +236,101 @@ static int convert_event_text(scc_event_t *event, char *textp, request_context_t
         dstidx += tag_string_len[TAG_TYPE_UNDER_START][1];
     }*/
 
-
     for (rowidx = 0; rowidx < 15; rowidx++)
     {
         if (event->row_used[rowidx] == 1) {
             for (colidx = 0; colidx < SCC_608_SCREEN_WIDTH+1; colidx++)
             {
                 bool_t printable = (event->characters[rowidx][colidx] != 0) ? TRUE : FALSE;
-                if (printable == TRUE) {
 #ifdef SCC_TEMP_VERBOSITY
                         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-                        "rowidx=%d, colidx=%d, char=%c, italic=%d",
-                        rowidx, colidx, event->characters[rowidx][colidx], event->italic[rowidx][colidx]);
+                        "rowidx=%d, colidx=%d, char=%c, italic=%d, printable=%d",
+                        rowidx, colidx, event->characters[rowidx][colidx], event->italic[rowidx][colidx], printable==TRUE);
 #endif
-                    if (event->characters[rowidx][colidx] == '\n')
+                if (printable == TRUE) {
+                    if (event->characters[rowidx][colidx] >= 0x80 && event->characters[rowidx][colidx] <= 0xcf)
+                    {
+                        // special and extended characters
+                        int utf8_idx = event->characters[rowidx][colidx] - 0x80;
+                        vod_memcpy(textp+dstidx, utf8_code[utf8_idx], utf8_len[utf8_idx]);
+                        dstidx      += utf8_len[utf8_idx];
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\n')
                         textp[dstidx++] = '\r';
+                    else if (event->characters[rowidx][colidx] == '<')
+                    {   // Less than is unique in WebVTT
+                        vod_memcpy(textp+dstidx, "&lt;", 4);
+                        dstidx += 4;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '>')
+                    {   // Greater than is unique in WebVTT
+                        vod_memcpy(textp+dstidx, "&gt;", 4);
+                        dstidx += 4;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '&')
+                    {   // Ampersand is unique in WebVTT
+                        vod_memcpy(textp+dstidx, "&amp;", 5);
+                        dstidx += 5;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\x2a')
+                    {   // Letter a with acute
+                        vod_memcpy(textp+dstidx, "\xc3\xa1", 2);
+                        dstidx += 2;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\x5c')
+                    {   // Letter e with acute
+                        vod_memcpy(textp+dstidx, "\xc3\xa9", 2);
+                        dstidx += 2;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\x5e')
+                    {   // Letter i with acute
+                        vod_memcpy(textp+dstidx, "\xc3\xad", 2);
+                        dstidx += 2;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\x5f')
+                    {   // Letter o with acute
+                        vod_memcpy(textp+dstidx, "\xc3\xb3", 2);
+                        dstidx += 2;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\x7b')
+                    {   // Letter c withh cedilla
+                        vod_memcpy(textp+dstidx, "\xc3\xa7", 2);
+                        dstidx += 2;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\x7c')
+                    {   // Division sign
+                        vod_memcpy(textp+dstidx, "\xc3\xb7", 2);
+                        dstidx += 2;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\x7d')
+                    {   // Letter N with tilde
+                        vod_memcpy(textp+dstidx, "\xc3\x91", 2);
+                        dstidx += 2;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\x7e')
+                    {   // Letter n with tilde
+                        vod_memcpy(textp+dstidx, "\xc3\xb1", 2);
+                        dstidx += 2;
+                        continue;
+                    }
+                    else if (event->characters[rowidx][colidx] == '\x7f')
+                    {   // Cursor block full
+                        vod_memcpy(textp+dstidx, "\xe2\x96\x88", 3);
+                        dstidx += 3;
+                        continue;
+                    }
+
                     textp[dstidx++] = event->characters[rowidx][colidx];
                 }
             }
