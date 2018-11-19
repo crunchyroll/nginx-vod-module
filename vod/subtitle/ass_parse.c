@@ -1031,8 +1031,12 @@ static int process_info_line(ass_track_t *track, char *str, request_context_t* r
     } else if (!strncmp(str, "Title:", 6)) {
         char *p = str + 6;
         char *strt, *end;
-        while (*p && ass_isspace(*p)) p++; strt = p;
-        while (*p && !ass_isspace(*p)) p++; end = p;
+        while (*p && ass_isspace(*p))
+            p++;
+        strt = p;
+        while (*p && !ass_isspace(*p))
+            p++;
+        end = p;
         free(track->Title);
         // Title: ﺎﻠﻋﺮﺒﻳﺓ
         track->Title = strndup(p, FFMAX(14, (size_t)(end-strt)));
@@ -1174,7 +1178,7 @@ ass_track_t *parse_memory(char *buf, int len, request_context_t* request_context
     if (pcopy == NULL)
     {
         vod_log_debug0(VOD_LOG_DEBUG_LEVEL, request_context->log, 0,
-            "parse_memory: vod_alloc failed");
+            "parse_memory(): vod_alloc failed");
         return NULL;
     }
     vod_memcpy(pcopy, buf, len+1);
@@ -1184,7 +1188,7 @@ ass_track_t *parse_memory(char *buf, int len, request_context_t* request_context
     if (!track)
     {
         vod_log_debug0(VOD_LOG_DEBUG_LEVEL, request_context->log, 0,
-            "vod_calloc() failed");
+            "parse_memory(): vod_calloc() failed");
         vod_free(request_context->pool, pcopy);
         return NULL;
     }
@@ -1194,7 +1198,7 @@ ass_track_t *parse_memory(char *buf, int len, request_context_t* request_context
     if (bfailed == 1)
     {
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-            "process_text failed, track_type = %d", track->track_type);
+            "parse_memory(): process_text failed, track_type = %d", track->track_type);
 
     }
     vod_free(request_context->pool, pcopy); // not needed anymore either way
@@ -1202,7 +1206,7 @@ ass_track_t *parse_memory(char *buf, int len, request_context_t* request_context
     if (track->track_type == TRACK_TYPE_UNKNOWN) {
         ass_free_track(request_context->pool, track);
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-            "track_type unknown");
+            "parse_memory(): track_type unknown");
         return NULL;
     }
 
