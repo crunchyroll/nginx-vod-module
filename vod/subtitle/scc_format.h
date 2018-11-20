@@ -4,14 +4,11 @@
 // includes
 #include "../media_format.h"
 
+//#define SCC_TEMP_VERBOSITY
+
 #define VALIGN_SUB 0
 #define VALIGN_CENTER 8
 #define VALIGN_TOP 4
-
-#define FFMAX(a,b) ((a) > (b) ? (a) : (b))
-#define FFMIN(a,b) ((a) > (b) ? (b) : (a))
-#define FFMINMAX(c,a,b) FFMIN(FFMAX(c, a), b)
-
 
 #define SCC_608_SCREEN_WIDTH  32
 #define SCC_NUM_OF_STYLES_INSERTED    10
@@ -36,7 +33,6 @@ typedef struct scc_event {
 	unsigned char      underline [15][33];
 	         char      row_used  [15];     // Any data in row?
 	unsigned char      color;
-	unsigned char      font;
 	unsigned char      bk_color;
 	int                len_text;           // number of visible characters added to this screen
 	enum cc_text_done  event_text_done;    // when set to EVENT_TEXT_DONE, no further text is added. EOC was received already.

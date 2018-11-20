@@ -26,13 +26,15 @@
 #define FIXED_WEBVTT_ESCAPE_FOR_RTL_STR "&lrm;"
 #define FIXED_WEBVTT_ESCAPE_FOR_RTL_WIDTH 5
 
-#define MAX_STR_SIZE_EVNT_CHUNK 1024
+#define SCC_MAX_CUE_DURATION_MSEC  3000
+#define SCC_MIN_CUE_DURATION_MSEC  1000
+#define SCC_MIN_INTER_CUE_DUR_MSEC  100
+
+#define MAX_STR_SIZE_EVNT_CHUNK         1024
 #define MAX_STR_SIZE_ALL_WEBVTT_STYLES 20480
 
-#define NUM_OF_INLINE_TAGS_SUPPORTED 3     //ibu
+#define NUM_OF_INLINE_TAGS_SUPPORTED 3     //iub
 
-
-#define SCC_TEMP_VERBOSITY
 //#define ASSUME_STYLE_SUPPORT
 
 static const int utf8_len[80] = {
@@ -220,21 +222,7 @@ void scc_swap_events(scc_event_t* nxt, scc_event_t* cur)
 static int convert_event_text(scc_event_t *event, char *textp, request_context_t* request_context)
 {
     int colidx, rowidx, dstidx = 0;
-    //bool_t ibu_flags[3] = {FALSE, FALSE, FALSE};
-
-    // insert openers to currently open modes, ordered as <i><b><u>
-    /*if (ibu_flags[0] == TRUE) {
-        vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_ITALIC_START], tag_string_len[TAG_TYPE_ITALIC_START][1]);
-        dstidx += tag_string_len[TAG_TYPE_ITALIC_START][1];
-    }
-    if (ibu_flags[1] == TRUE) {
-         vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_BOLD_START], tag_string_len[TAG_TYPE_BOLD_START][1]);
-         dstidx += tag_string_len[TAG_TYPE_BOLD_START][1];
-    }
-    if (ibu_flags[2] == TRUE) {
-        vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_UNDER_START], tag_string_len[TAG_TYPE_UNDER_START][1]);
-        dstidx += tag_string_len[TAG_TYPE_UNDER_START][1];
-    }*/
+    unsigned char iub_flags[2] = {0, 0}; // non-italic font, non-underlined font
 
     for (rowidx = 0; rowidx < 15; rowidx++)
     {
@@ -243,11 +231,37 @@ static int convert_event_text(scc_event_t *event, char *textp, request_context_t
             {
                 bool_t printable = (event->characters[rowidx][colidx] != 0) ? TRUE : FALSE;
 #ifdef SCC_TEMP_VERBOSITY
-                        vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-                        "rowidx=%d, colidx=%d, char=%c, italic=%d, printable=%d",
-                        rowidx, colidx, event->characters[rowidx][colidx], event->italic[rowidx][colidx], printable==TRUE);
+                vod_log_error(VOD_LOG_ERR, request_context->log, 0,
+                "convert_event_text(): rowidx=%d, colidx=%d, char=%c, italic=%d, printable=%d",
+                rowidx, colidx, event->characters[rowidx][colidx], event->italic[rowidx][colidx], printable==TRUE);
 #endif
                 if (printable == TRUE) {
+                    bool_t toggled = ((iub_flags[0] != event->italic   [rowidx][colidx]) ||
+                                      (iub_flags[1] != event->underline[rowidx][colidx]));
+                    if (toggled == TRUE) {
+                        // close b u i in order (if open)
+                        if (iub_flags[1])
+                        {
+                            vod_memcpy(textp+ dstidx, "</u>", 4); dstidx += 4;
+                        }
+                        if (iub_flags[0])
+                        {
+                            vod_memcpy(textp+ dstidx, "</i>", 4); dstidx += 4;
+                        }
+                        // set the running flags
+                        iub_flags[0] = event->italic   [rowidx][colidx];
+                        iub_flags[1] = event->underline[rowidx][colidx];
+                        // open i u b in order (if open)
+                        if (iub_flags[0])
+                        {
+                            vod_memcpy(textp+ dstidx, "<i>", 3); dstidx += 3;
+                        }
+                        if (iub_flags[1])
+                        {
+                            vod_memcpy(textp+ dstidx, "<u>", 3); dstidx += 3;
+                        }
+                    }
+
                     if (event->characters[rowidx][colidx] >= 0x80 && event->characters[rowidx][colidx] <= 0xcf)
                     {
                         // special and extended characters
@@ -256,7 +270,7 @@ static int convert_event_text(scc_event_t *event, char *textp, request_context_t
                         dstidx      += utf8_len[utf8_idx];
                         continue;
                     }
-                    else if (event->characters[rowidx][colidx] == '\n')
+                    else if (colidx == SCC_608_SCREEN_WIDTH && event->characters[rowidx][colidx] == '\n')
                         textp[dstidx++] = '\r';
                     else if (event->characters[rowidx][colidx] == '<')
                     {   // Less than is unique in WebVTT
@@ -336,118 +350,15 @@ static int convert_event_text(scc_event_t *event, char *textp, request_context_t
             }
         }
     }
-        /*for (tagidx = 0; tagidx < TAG_TYPE_NONE; tagidx++)
-        {
-            if (vod_strncmp(src+srcidx, tag_strings[tagidx], tag_string_len[tagidx][0]) == 0)
-            {
-                char* curloc;
-                srcidx += tag_string_len[tagidx][0]; //tag got read from input
-                curloc = src + srcidx;
-
-                switch (tagidx) {
-                    case (TAG_TYPE_ITALIC_END):
-                    case (TAG_TYPE_BOLD_END):
-                    case (TAG_TYPE_UNDER_END):
-                    case (TAG_TYPE_ITALIC_START):
-                    case (TAG_TYPE_BOLD_START):
-                    case (TAG_TYPE_UNDER_START): {
-                        int ibu_idx = (tagidx - TAG_TYPE_IBU_DATUM) >> 1;
-                        bool_t opposite = (tagidx & 1) == 1;
-                        // Is this toggling one of the 3 flags? otherwise we ignore it
-                        if (ibu_flags[ibu_idx] == opposite)
-                        {
-                            // insert closures to open spans, ordered as </u></b></i>
-                            if (ibu_flags[2] == TRUE) {
-                                vod_memcpy(textp+ dstidx, tag_replacement_strings[TAG_TYPE_UNDER_END], tag_string_len[TAG_TYPE_UNDER_END][1]);
-                                dstidx += tag_string_len[TAG_TYPE_UNDER_END][1];
-                            }
-                            if (ibu_flags[1] == TRUE) {
-                                 vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_BOLD_END], tag_string_len[TAG_TYPE_BOLD_END][1]);
-                                 dstidx += tag_string_len[TAG_TYPE_BOLD_END][1];
-                            }
-                            if (ibu_flags[0] == TRUE) {
-                                vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_ITALIC_END], tag_string_len[TAG_TYPE_ITALIC_END][1]);
-                                dstidx += tag_string_len[TAG_TYPE_ITALIC_END][1];
-                            }
-                            // toggle the flag
-                            ibu_flags[ibu_idx] = !ibu_flags[ibu_idx];
-                            // insert openers to currently open modes, ordered as <i><b><u>
-                            if (ibu_flags[0] == TRUE) {
-                                vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_ITALIC_START], tag_string_len[TAG_TYPE_ITALIC_START][1]);
-                                dstidx += tag_string_len[TAG_TYPE_ITALIC_START][1];
-                            }
-                            if (ibu_flags[1] == TRUE) {
-                                 vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_BOLD_START], tag_string_len[TAG_TYPE_BOLD_START][1]);
-                                 dstidx += tag_string_len[TAG_TYPE_BOLD_START][1];
-                            }
-                            if (ibu_flags[2] == TRUE) {
-                                vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_UNDER_START], tag_string_len[TAG_TYPE_UNDER_START][1]);
-                                dstidx += tag_string_len[TAG_TYPE_UNDER_START][1];
-                            }
-                        }
-                    } break;
-
-                    case (TAG_TYPE_NEWLINE_LARGE):
-                    case (TAG_TYPE_NEWLINE_SMALL): {
-                         // replace the string with its equivalent in target string
-                        vod_memcpy(textp + dstidx, tag_replacement_strings[tagidx], tag_string_len[tagidx][1]);
-                        dstidx += tag_string_len[tagidx][1]; //tag got written to output
-                    } break;
-
-                    case (TAG_TYPE_AMPERSANT):
-                    case (TAG_TYPE_BIGGERTHAN):
-                    case (TAG_TYPE_SMALLERTHAN): {
-                        cur_run++;  // just one single visible character out of this webvtt code word
-                        // replace the string with its equivalent in target string
-                        vod_memcpy(textp + dstidx, tag_replacement_strings[tagidx], tag_string_len[tagidx][1]);
-                        dstidx += tag_string_len[tagidx][1]; //tag got written to output
-                    } break;
-
-                    case (TAG_TYPE_OPEN_BRACES):
-                    case (TAG_TYPE_CLOSE_BRACES): {
-                        // replace the string with its equivalent in target string
-                        vod_memcpy(textp + dstidx, tag_replacement_strings[tagidx], tag_string_len[tagidx][1]);
-                        dstidx += tag_string_len[tagidx][1]; //tag got written to output
-                    } break;
-
-                    default: {
-                        // replace the string with its equivalent in target string
-                        vod_memcpy(textp + dstidx, tag_replacement_strings[tagidx], tag_string_len[tagidx][1]);
-                        dstidx += tag_string_len[tagidx][1]; //tag got written to output
-                    }
-                }
-
-                tagidx = -1; //start all tags again, cause they can come in any order
-            }
-        }
-        // none of the tags matched this character
-        if (tagidx == TAG_TYPE_NONE)
-        {
-            // for Arabic language, we want to increment number of characters only once every 2 bytes
-            // Arabic utf8 chars all start with 0xD8 or 0xD9, different from all western languages
-            unsigned char cur_char = (unsigned char)(*(src + srcidx));
-            if (cur_char != 0xD8 && cur_char != 0xD9)
-                cur_run++;
-
-            vod_memcpy(textp + dstidx, src + srcidx, 1);
-            srcidx++;
-            dstidx++;
-        }
+    // insert closures to open spans, ordered as </b></u></i>
+    if (iub_flags[1])
+    {
+        vod_memcpy(textp+ dstidx, "</u>", 4); dstidx += 4;
     }
-
-    // insert closures to open spans, ordered as </u></b></i>
-    if (ibu_flags[2] == TRUE) {
-        vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_UNDER_END], tag_string_len[TAG_TYPE_UNDER_END][1]);
-        dstidx += tag_string_len[TAG_TYPE_UNDER_END][1];
+    if (iub_flags[0])
+    {
+        vod_memcpy(textp+ dstidx, "</i>", 4); dstidx += 4;
     }
-    if (ibu_flags[1] == TRUE) {
-         vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_BOLD_END], tag_string_len[TAG_TYPE_BOLD_END][1]);
-         dstidx += tag_string_len[TAG_TYPE_BOLD_END][1];
-    }
-    if (ibu_flags[0] == TRUE) {
-        vod_memcpy(textp + dstidx, tag_replacement_strings[TAG_TYPE_ITALIC_END], tag_string_len[TAG_TYPE_ITALIC_END][1]);
-        dstidx += tag_string_len[TAG_TYPE_ITALIC_END][1];
-    }*/
 
     return dstidx;
 }
@@ -684,10 +595,11 @@ scc_parse_frames(
             }
         }
     }
-    // set the end_time of each event depending on next event's start_time
+    // set the end_time of each event depending on next event's start_time, capping to 3 seconds.
+    // Set duation of last event in the file to 3 seconds for any input file.
     scc_event_t*  last_event = scc_track->events + scc_track->n_events - 1;
     if (last_event != NULL)
-        last_event->end_time = last_event->start_time + 3000;
+        last_event->end_time = last_event->start_time + SCC_MAX_CUE_DURATION_MSEC;
     for (evntcounter = scc_track->n_events - 1; evntcounter > 0 ; evntcounter--)
     {
         scc_event_t*  next_event = scc_track->events + evntcounter;
@@ -695,7 +607,15 @@ scc_parse_frames(
         if (cur_event->start_time == next_event->start_time)
             cur_event->end_time = next_event->end_time;
         else
-            cur_event->end_time = next_event->start_time - 100;
+        {
+            // duration is capped to no less than 1 sec, no more than 3 seconds
+            // we should cap it to no less than some value
+            int64_t expected_end = next_event->start_time - SCC_MIN_INTER_CUE_DUR_MSEC;
+            if (expected_end < SCC_MIN_CUE_DURATION_MSEC)
+                expected_end = SCC_MIN_CUE_DURATION_MSEC;
+            int64_t capped_end   = cur_event->start_time  + SCC_MAX_CUE_DURATION_MSEC;
+            cur_event->end_time  = (expected_end < capped_end) ? expected_end : capped_end;
+        }
     }
 
     // allocate initial array of cues/styles, to be augmented as needed after the first 5
