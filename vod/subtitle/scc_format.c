@@ -409,7 +409,7 @@ static char* output_one_style(char* p)
 
 
         len = 14; vod_memcpy(p, "font-family: \"", len);                                       p+=len;
-        len = 27; vod_memcpy(p, "RAFIK INSERT FONT NAME HERE", len);                           p+=len;  //TODO: using style index, output name an modify the rest of this function
+        len = 27; vod_memcpy(p, "RAFIK INSERT FONT NAME HERE", len);                           p+=len;
         len = 16; vod_memcpy(p, "\", sans-serif;\r\n", len);                                   p+=len;
         vod_sprintf((u_char*)p, "font-size: %03uDpx;\r\n", 24);                                p+=19;
 

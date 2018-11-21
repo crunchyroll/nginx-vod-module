@@ -38,14 +38,6 @@ typedef struct scc_event {
 
     long long          start_time;         // ms
     long long          end_time;           // ms
-
-
-    // TODO: remove when parsed correctly
-    int         Style;
-    int         MarginL;
-    int         MarginR;
-    int         MarginV;
-    char       *Text;
 } scc_event_t;
 
 /*
@@ -65,11 +57,6 @@ typedef struct scc_track {
 	unsigned char   current_color;        // Color we are currently using to write
 	unsigned char   current_bk_color;     // Background color we are currently using to write
 	unsigned char   current_iub;          // Current flag values. RMS bit is Italic flag, bit 1 is Underline, bit 2 is Flash/Bold
-
-
-    // TODO: remove when parsed correctly
-    int             PlayResX;
-    int             PlayResY;
 } scc_track_t;
 
 scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request_context);
