@@ -29,8 +29,7 @@ enum cc_text_done
  */
 typedef struct scc_event {
 	unsigned char      characters[15][33]; // Extra char at the end for potential '\n'
-	unsigned char      italic    [15][33];
-	unsigned char      underline [15][33];
+	unsigned char      iub       [15][33]; // RMS bit is Italic flag, bit 1 is Underline, bit 2 is Flash/Bold
 	         char      row_used  [15];     // Any data in row?
 	unsigned char      color;
 	unsigned char      bk_color;
@@ -65,8 +64,8 @@ typedef struct scc_track {
 	unsigned char   last_c1, last_c2;
 	unsigned char   current_color;        // Color we are currently using to write
 	unsigned char   current_bk_color;     // Background color we are currently using to write
-	unsigned char   current_italic;       // Italic flag we are currently using to write
-	unsigned char   current_underline;    // Underline flag we are currently using to write
+	unsigned char   current_iub;          // Current flag values. RMS bit is Italic flag, bit 1 is Underline, bit 2 is Flash/Bold
+
 
     // TODO: remove when parsed correctly
     int             PlayResX;
@@ -98,10 +97,14 @@ enum scc_color_code
 
 enum font_bits
 {
-	FONT_REGULAR            = 0,
-	FONT_ITALICS            = 1,
-	FONT_UNDERLINED         = 2,
-	FONT_UNDERLINED_ITALICS = 3
+	FONT_REGULAR                = 0,
+	FONT_ITALIC                 = 1,
+	FONT_UNDERLINED             = 2,
+	FONT_UNDERLINED_ITALIC      = 3,
+	FONT_BOLD                   = 4,
+	FONT_BOLD_ITALIC            = 5,
+	FONT_BOLD_UNDERLINED        = 6,
+	FONT_BOLD_UNDERLINED_ITALIC = 7
 };
 
 enum command_code
@@ -124,9 +127,7 @@ enum command_code
 	COM_ALARMON = 15,
 	COM_DELETETOENDOFROW = 16,
 	COM_RESUMEDIRECTCAPTIONING = 17,
-	// Non existing commands we insert to have the decoder
-	// special stuff for us.
-	COM_FAKE_RULLUP1 = 18
+	COM_FLASHON = 18
 };
 
 #endif //__SCC_FORMAT_H__

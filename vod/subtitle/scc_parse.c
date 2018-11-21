@@ -75,38 +75,38 @@ static const int rowdata[] = {11,-1,1,2,3,4,12,13,14,15,5,6,7,8,9,10};
 
 static const unsigned char pac2_attribs[][3] = // Color, font, indent
 {
-	{ COL_WHITE, FONT_REGULAR, 0 },  // 0x40 || 0x60
-	{ COL_WHITE, FONT_UNDERLINED, 0 },  // 0x41 || 0x61
-	{ COL_GREEN, FONT_REGULAR, 0 },  // 0x42 || 0x62
-	{ COL_GREEN, FONT_UNDERLINED, 0 },  // 0x43 || 0x63
-	{ COL_BLUE, FONT_REGULAR, 0 },  // 0x44 || 0x64
-	{ COL_BLUE, FONT_UNDERLINED, 0 },  // 0x45 || 0x65
-	{ COL_CYAN, FONT_REGULAR, 0 },  // 0x46 || 0x66
-	{ COL_CYAN, FONT_UNDERLINED, 0 },  // 0x47 || 0x67
-	{ COL_RED, FONT_REGULAR, 0 },  // 0x48 || 0x68
-	{ COL_RED, FONT_UNDERLINED, 0 },  // 0x49 || 0x69
-	{ COL_YELLOW, FONT_REGULAR, 0 },  // 0x4a || 0x6a
-	{ COL_YELLOW, FONT_UNDERLINED, 0 },  // 0x4b || 0x6b
-	{ COL_MAGENTA, FONT_REGULAR, 0 },  // 0x4c || 0x6c
-	{ COL_MAGENTA, FONT_UNDERLINED, 0 },  // 0x4d || 0x6d
-	{ COL_WHITE, FONT_ITALICS, 0 },  // 0x4e || 0x6e
-	{ COL_WHITE, FONT_UNDERLINED_ITALICS, 0 },  // 0x4f || 0x6f
-	{ COL_WHITE, FONT_REGULAR, 0 },  // 0x50 || 0x70
-	{ COL_WHITE, FONT_UNDERLINED, 0 },  // 0x51 || 0x71
-	{ COL_WHITE, FONT_REGULAR, 4 },  // 0x52 || 0x72
-	{ COL_WHITE, FONT_UNDERLINED, 4 },  // 0x53 || 0x73
-	{ COL_WHITE, FONT_REGULAR, 8 },  // 0x54 || 0x74
-	{ COL_WHITE, FONT_UNDERLINED, 8 },  // 0x55 || 0x75
-	{ COL_WHITE, FONT_REGULAR, 12 }, // 0x56 || 0x76
-	{ COL_WHITE, FONT_UNDERLINED, 12 }, // 0x57 || 0x77
-	{ COL_WHITE, FONT_REGULAR, 16 }, // 0x58 || 0x78
-	{ COL_WHITE, FONT_UNDERLINED, 16 }, // 0x59 || 0x79
-	{ COL_WHITE, FONT_REGULAR, 20 }, // 0x5a || 0x7a
-	{ COL_WHITE, FONT_UNDERLINED, 20 }, // 0x5b || 0x7b
-	{ COL_WHITE, FONT_REGULAR, 24 }, // 0x5c || 0x7c
-	{ COL_WHITE, FONT_UNDERLINED, 24 }, // 0x5d || 0x7d
-	{ COL_WHITE, FONT_REGULAR, 28 }, // 0x5e || 0x7e
-	{ COL_WHITE, FONT_UNDERLINED, 28 }  // 0x5f || 0x7f
+	{ COL_WHITE,   FONT_REGULAR,           0 }, // 0x40 || 0x60
+	{ COL_WHITE,   FONT_UNDERLINED,        0 }, // 0x41 || 0x61
+	{ COL_GREEN,   FONT_REGULAR,           0 }, // 0x42 || 0x62
+	{ COL_GREEN,   FONT_UNDERLINED,        0 }, // 0x43 || 0x63
+	{ COL_BLUE,    FONT_REGULAR,           0 }, // 0x44 || 0x64
+	{ COL_BLUE,    FONT_UNDERLINED,        0 }, // 0x45 || 0x65
+	{ COL_CYAN,    FONT_REGULAR,           0 }, // 0x46 || 0x66
+	{ COL_CYAN,    FONT_UNDERLINED,        0 }, // 0x47 || 0x67
+	{ COL_RED,     FONT_REGULAR,           0 }, // 0x48 || 0x68
+	{ COL_RED,     FONT_UNDERLINED,        0 }, // 0x49 || 0x69
+	{ COL_YELLOW,  FONT_REGULAR,           0 }, // 0x4a || 0x6a
+	{ COL_YELLOW,  FONT_UNDERLINED,        0 }, // 0x4b || 0x6b
+	{ COL_MAGENTA, FONT_REGULAR,           0 }, // 0x4c || 0x6c
+	{ COL_MAGENTA, FONT_UNDERLINED,        0 }, // 0x4d || 0x6d
+	{ COL_WHITE,   FONT_ITALIC,            0 }, // 0x4e || 0x6e
+	{ COL_WHITE,   FONT_UNDERLINED_ITALIC, 0 }, // 0x4f || 0x6f
+	{ COL_WHITE,   FONT_REGULAR,           0 }, // 0x50 || 0x70
+	{ COL_WHITE,   FONT_UNDERLINED,        0 }, // 0x51 || 0x71
+	{ COL_WHITE,   FONT_REGULAR,           4 }, // 0x52 || 0x72
+	{ COL_WHITE,   FONT_UNDERLINED,        4 }, // 0x53 || 0x73
+	{ COL_WHITE,   FONT_REGULAR,           8 }, // 0x54 || 0x74
+	{ COL_WHITE,   FONT_UNDERLINED,        8 }, // 0x55 || 0x75
+	{ COL_WHITE,   FONT_REGULAR,          12 }, // 0x56 || 0x76
+	{ COL_WHITE,   FONT_UNDERLINED,       12 }, // 0x57 || 0x77
+	{ COL_WHITE,   FONT_REGULAR,          16 }, // 0x58 || 0x78
+	{ COL_WHITE,   FONT_UNDERLINED,       16 }, // 0x59 || 0x79
+	{ COL_WHITE,   FONT_REGULAR,          20 }, // 0x5a || 0x7a
+	{ COL_WHITE,   FONT_UNDERLINED,       20 }, // 0x5b || 0x7b
+	{ COL_WHITE,   FONT_REGULAR,          24 }, // 0x5c || 0x7c
+	{ COL_WHITE,   FONT_UNDERLINED,       24 }, // 0x5d || 0x7d
+	{ COL_WHITE,   FONT_REGULAR,          28 }, // 0x5e || 0x7e
+	{ COL_WHITE,   FONT_UNDERLINED,       28 }  // 0x5f || 0x7f
 };
 
 #ifdef SCC_TEMP_VERBOSITY
@@ -130,15 +130,19 @@ static const char *command_type[] =
 	"AON - Not Used (Alarm On)",
 	"DER - Delete to End of Row",
 	"RDC - Resume Direct Captioning",
-	"RU1 - Fake Roll up 1 rows"
+	"FON - Flash turened ON"
 };
 
 static const char *font_text[]=
 {
 	"regular",
-	"italics",
+	"italic",
 	"underlined",
-	"underlined italics"
+	"underlined_italic",
+	"bold",
+	"bold_italic",
+	"bold_underlined"
+	"bold_underlined_italic"
 };
 
 #define MAX_COLOR 10
@@ -204,8 +208,7 @@ scc_event_t *new_event(scc_track_t *track, request_context_t* request_context)
 	for (i=0;i<15;i++)
 	{
 		memset(event->characters[i], 0, SCC_608_SCREEN_WIDTH+1);
-		memset(event->italic[i],     0, SCC_608_SCREEN_WIDTH+1);
-		memset(event->underline[i],  0, SCC_608_SCREEN_WIDTH+1);
+		memset(event->iub[i],        0, SCC_608_SCREEN_WIDTH+1);
 		event->row_used[i] = 0;
 	}
 	event->color           = COL_WHITE;
@@ -277,20 +280,20 @@ void handle_pac(unsigned char c1, unsigned char c2, scc_track_t *track, request_
     {
         // new line in the same event, just insert new line in index 32, and update the track values
         event->characters[track->cursor_row][SCC_608_SCREEN_WIDTH] = '\n';
-        event->italic    [track->cursor_row][SCC_608_SCREEN_WIDTH] = track->current_italic;
-        event->underline [track->cursor_row][SCC_608_SCREEN_WIDTH] = track->current_underline;
+        event->iub       [track->cursor_row][SCC_608_SCREEN_WIDTH] = track->current_iub;
         track->cursor_row           = new_cursor_row;
         track->cursor_column        = new_cursor_col;
     }
 
-    // now that newline was added, update the track's italic/underline
-    track->current_italic    = (pac2_attribs[c2][1] == FONT_ITALICS)    || (pac2_attribs[c2][1] == FONT_UNDERLINED_ITALICS);
-    track->current_underline = (pac2_attribs[c2][1] == FONT_UNDERLINED) || (pac2_attribs[c2][1] == FONT_UNDERLINED_ITALICS);
+    // now that newline was added, update the track's italic/underline/bold
+    track->current_iub =  ((pac2_attribs[c2][1] == FONT_ITALIC)     || (pac2_attribs[c2][1] == FONT_UNDERLINED_ITALIC))       |
+                         (((pac2_attribs[c2][1] == FONT_UNDERLINED) || (pac2_attribs[c2][1] == FONT_UNDERLINED_ITALIC)) << 1) |
+                         (track->current_iub & 4);
 
 #ifdef SCC_TEMP_VERBOSITY
     vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-        "handle_pac: %d %d  nevents=%d, trackrow=%d, col=%d, color=%d, italic=%d",
-        c1, c2, track->n_events, track->cursor_row, track->cursor_column, track->current_color, track->current_italic);
+        "handle_pac: %d %d  nevents=%d, trackrow=%d, col=%d, color=%d, iub=%d",
+        c1, c2, track->n_events, track->cursor_row, track->cursor_column, track->current_color, track->current_iub);
 #endif
 }
 
@@ -307,8 +310,7 @@ void handle_pac(unsigned char c1, unsigned char c2, scc_track_t *track, request_
         // need to check and correct.
         event->characters[track->cursor_row][i] = 0;
     }
-    event->italic    [track->cursor_row][track->cursor_column] = 0;
-    event->underline [track->cursor_row][track->cursor_column] = 0;
+    event->iub[track->cursor_row][track->cursor_column] = 0;
 }*/
 
 void write_char(const unsigned char c, scc_track_t *track, request_context_t* request_context)
@@ -319,8 +321,7 @@ void write_char(const unsigned char c, scc_track_t *track, request_context_t* re
     else
     {
         event->characters[track->cursor_row][track->cursor_column] = c; // TODO: handle extended charsets
-        event->italic    [track->cursor_row][track->cursor_column] = track->current_italic;
-        event->underline [track->cursor_row][track->cursor_column] = track->current_underline;
+        event->iub       [track->cursor_row][track->cursor_column] = track->current_iub;
         event->row_used[track->cursor_row] = 1;
         event->len_text++;
     }
@@ -341,13 +342,14 @@ void handle_text_attr(const unsigned char c1, const unsigned char c2, scc_track_
 		int i = c2-0x20;
 		track->current_color     = pac2_attribs[i][0];
 		track->current_bk_color  = COL_CYAN;
-		track->current_italic    = (pac2_attribs[i][1] == FONT_ITALICS)    || (pac2_attribs[i][1] == FONT_UNDERLINED_ITALICS);
-		track->current_underline = (pac2_attribs[i][1] == FONT_UNDERLINED) || (pac2_attribs[i][1] == FONT_UNDERLINED_ITALICS);
+		// Mid-row codes turn flashing off, so we reset bit 2 in the track's iub bit field
+		track->current_iub       =  ((pac2_attribs[i][1] == FONT_ITALIC)     || (pac2_attribs[i][1] == FONT_UNDERLINED_ITALIC))      |
+		                           (((pac2_attribs[i][1] == FONT_UNDERLINED) || (pac2_attribs[i][1] == FONT_UNDERLINED_ITALIC)) << 1);
 #ifdef SCC_TEMP_VERBOSITY
 		vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-			"handle_text_attr() --  Color: %s,  underline|italics: %s",
+			"handle_text_attr() --  Color: %s,  iub: %s",
 			color_text[track->current_color][0],
-			font_text[(track->current_underline*2) + track->current_italic]);
+			font_text[track->current_iub]);
 #endif
 		// Mid-row codes should put a non-transparent space at the current position
 		// and advance the cursor so use write_char
@@ -431,6 +433,8 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 		command = COM_ROLLUP3;
 	if ((c1==0x14 || c1==0x1C) && c2==0x27)
 		command = COM_ROLLUP4;
+	if ((c1==0x14 || c1==0x1C) && c2==0x28)
+		command = COM_FLASHON;
 	if ((c1==0x14 || c1==0x1C) && c2==0x29)
 		command = COM_RESUMEDIRECTCAPTIONING;
 	if ((c1==0x14 || c1==0x1C) && c2==0x2D)
@@ -442,13 +446,12 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 	if ((c1==0x14 || c1==0x1C) && c2==0x2b)
 		command = COM_RESUMETEXTDISPLAY;
 
-	if (command == COM_ROLLUP2 || command == COM_ROLLUP3 || command == COM_ROLLUP4)
-		command=COM_FAKE_RULLUP1;
 #ifdef SCC_TEMP_VERBOSITY
 	vod_log_error(VOD_LOG_ERR, request_context->log, 0,
 	    "BEGIN{ handle_command(): %0d %0d (%s), Position=%d,%d  n_events=%d",
 	    c1, c2, command_type[command], track->cursor_row, track->cursor_column, track->n_events);
 #endif
+
     scc_event_t * event = get_writing_buffer(track, request_context);
 	switch (command)
 	{
@@ -460,17 +463,17 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 			}
 			break;
 		case COM_TABOFFSET1:
-			if (track->cursor_column<SCC_608_SCREEN_WIDTH - 1)
+			if (track->cursor_column < SCC_608_SCREEN_WIDTH - 1)
 				track->cursor_column++;
 			break;
 		case COM_TABOFFSET2:
 			track->cursor_column += 2;
-			if (track->cursor_column>SCC_608_SCREEN_WIDTH - 1)
+			if (track->cursor_column > SCC_608_SCREEN_WIDTH - 1)
 				track->cursor_column = SCC_608_SCREEN_WIDTH - 1;
 			break;
 		case COM_TABOFFSET3:
 			track->cursor_column += 3;
-			if (track->cursor_column>SCC_608_SCREEN_WIDTH - 1)
+			if (track->cursor_column > SCC_608_SCREEN_WIDTH - 1)
 				track->cursor_column = SCC_608_SCREEN_WIDTH - 1;
 			break;
 		case COM_RESUMECAPTIONLOADING:
@@ -482,7 +485,7 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 			break;
 		case COM_CARRIAGERETURN:
             track->cursor_column = 0;
-            if (track->cursor_row<15)
+            if (track->cursor_row < 15)
                 track->cursor_row++;
             break;
 		case COM_ERASEDISPLAYEDMEMORY:
@@ -494,8 +497,7 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
             track->cursor_row        = track->cursor_column = 0;
             track->current_color     = COL_WHITE;
             track->current_bk_color  = COL_CYAN;
-            track->current_italic    = 0;
-            track->current_underline = 0;
+            track->current_iub       = 0;
 			break;
 		case COM_ENDOFCAPTION:
 		    if (event != NULL && event->event_text_done == EVENT_TEXT_OPEN)
@@ -505,8 +507,10 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
             }
 		    // TODO: make sure you check this flag when writing char
 			break;
+		case COM_FLASHON:
+		    track->current_iub |= 4;
+		    break;
 		case COM_DELETETOENDOFROW:
-		case COM_FAKE_RULLUP1:
 		case COM_ROLLUP2:
 		case COM_ROLLUP3:
 		case COM_ROLLUP4:
@@ -521,8 +525,8 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 			break;
 	}
 #ifdef SCC_TEMP_VERBOSITY
-	vod_log_error(VOD_LOG_ERR, request_context->log, 0, "}END handle_command(): Position=%d,%d n_events=%d, color=%d italic=%d",
-		track->cursor_row, track->cursor_column, track->n_events, track->current_color, track->current_italic);
+	vod_log_error(VOD_LOG_ERR, request_context->log, 0, "}END handle_command(): Position=%d,%d n_events=%d, color=%d iub=%d",
+		track->cursor_row, track->cursor_column, track->n_events, track->current_color, track->current_iub);
 #endif
 }
 

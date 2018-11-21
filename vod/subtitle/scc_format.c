@@ -222,7 +222,7 @@ void scc_swap_events(scc_event_t* nxt, scc_event_t* cur)
 static int convert_event_text(scc_event_t *event, char *textp, request_context_t* request_context)
 {
     int colidx, rowidx, dstidx = 0;
-    unsigned char iub_flags[2] = {0, 0}; // non-italic font, non-underlined font
+    unsigned char iub_flags = 0; // non-italic, non-underlined, non-bold/flash font
 
     for (rowidx = 0; rowidx < 15; rowidx++)
     {
@@ -232,33 +232,39 @@ static int convert_event_text(scc_event_t *event, char *textp, request_context_t
                 bool_t printable = (event->characters[rowidx][colidx] != 0) ? TRUE : FALSE;
 #ifdef SCC_TEMP_VERBOSITY
                 vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-                "convert_event_text(): rowidx=%d, colidx=%d, char=%c, italic=%d, printable=%d",
-                rowidx, colidx, event->characters[rowidx][colidx], event->italic[rowidx][colidx], printable==TRUE);
+                "convert_event_text(): rowidx=%d, colidx=%d, char=%c, iub=%d, printable=%d",
+                rowidx, colidx, event->characters[rowidx][colidx], event->iub[rowidx][colidx], printable==TRUE);
 #endif
                 if (printable == TRUE) {
-                    bool_t toggled = ((iub_flags[0] != event->italic   [rowidx][colidx]) ||
-                                      (iub_flags[1] != event->underline[rowidx][colidx]));
-                    if (toggled == TRUE) {
+                    if (iub_flags != event->iub[rowidx][colidx]) {
                         // close b u i in order (if open)
-                        if (iub_flags[1])
+                        if (iub_flags & 4)
                         {
-                            vod_memcpy(textp+ dstidx, "</u>", 4); dstidx += 4;
+                            vod_memcpy(textp + dstidx, "</b>", 4); dstidx += 4;
                         }
-                        if (iub_flags[0])
+                        if (iub_flags & 2)
                         {
-                            vod_memcpy(textp+ dstidx, "</i>", 4); dstidx += 4;
+                            vod_memcpy(textp + dstidx, "</u>", 4); dstidx += 4;
+                        }
+                        if (iub_flags & 1)
+                        {
+                            vod_memcpy(textp + dstidx, "</i>", 4); dstidx += 4;
                         }
                         // set the running flags
-                        iub_flags[0] = event->italic   [rowidx][colidx];
-                        iub_flags[1] = event->underline[rowidx][colidx];
+                        iub_flags = event->iub[rowidx][colidx];
+
                         // open i u b in order (if open)
-                        if (iub_flags[0])
+                        if (iub_flags & 1)
                         {
                             vod_memcpy(textp+ dstidx, "<i>", 3); dstidx += 3;
                         }
-                        if (iub_flags[1])
+                        if (iub_flags & 2)
                         {
                             vod_memcpy(textp+ dstidx, "<u>", 3); dstidx += 3;
+                        }
+                        if (iub_flags & 4)
+                        {
+                            vod_memcpy(textp+ dstidx, "<b>", 3); dstidx += 3;
                         }
                     }
 
@@ -351,13 +357,17 @@ static int convert_event_text(scc_event_t *event, char *textp, request_context_t
         }
     }
     // insert closures to open spans, ordered as </b></u></i>
-    if (iub_flags[1])
+    if (iub_flags & 4)
     {
-        vod_memcpy(textp+ dstidx, "</u>", 4); dstidx += 4;
+        vod_memcpy(textp + dstidx, "</b>", 4); dstidx += 4;
     }
-    if (iub_flags[0])
+    if (iub_flags & 2)
     {
-        vod_memcpy(textp+ dstidx, "</i>", 4); dstidx += 4;
+        vod_memcpy(textp + dstidx, "</u>", 4); dstidx += 4;
+    }
+    if (iub_flags & 1)
+    {
+        vod_memcpy(textp + dstidx, "</i>", 4); dstidx += 4;
     }
 
     return dstidx;
