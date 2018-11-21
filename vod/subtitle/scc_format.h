@@ -28,13 +28,13 @@ enum cc_text_done
  * text is stored as-is, style overrides gets applied later.
  */
 typedef struct scc_event {
-	unsigned char      characters[15][33]; // Extra char at the end for potential '\n'
-	unsigned char      iub       [15][33]; // RMS bit is Italic flag, bit 1 is Underline, bit 2 is Flash/Bold
-	         char      row_used  [15];     // Any data in row?
-	unsigned char      color;
-	unsigned char      bk_color;
-	int                len_text;           // number of visible characters added to this screen
-	enum cc_text_done  event_text_done;    // when set to EVENT_TEXT_DONE, no further text is added. EOC was received already.
+    unsigned char      characters[15][33]; // Extra char at the end for potential '\n'
+    unsigned char      iub       [15][33]; // RMS bit is Italic flag, bit 1 is Underline, bit 2 is Flash/Bold
+             char      row_used  [15];     // Any data in row?
+    unsigned char      color;
+    unsigned char      bk_color;
+    int                len_text;           // number of visible characters added to this screen
+    enum cc_text_done  event_text_done;    // when set to EVENT_TEXT_DONE, no further text is added. EOC was received already.
 
     long long          start_time;         // ms
     long long          end_time;           // ms
@@ -52,11 +52,11 @@ typedef struct scc_track {
     scc_event_t    *events;
 
     long long       cue_time;             // ms
-	int             cursor_row, cursor_column;
-	unsigned char   last_c1, last_c2;
-	unsigned char   current_color;        // Color we are currently using to write
-	unsigned char   current_bk_color;     // Background color we are currently using to write
-	unsigned char   current_iub;          // Current flag values. RMS bit is Italic flag, bit 1 is Underline, bit 2 is Flash/Bold
+    int             cursor_row, cursor_column;
+    unsigned char   last_c1, last_c2;
+    unsigned char   current_color;        // Color we are currently using to write
+    unsigned char   current_bk_color;     // Background color we are currently using to write
+    unsigned char   current_iub;          // Current flag values. RMS bit is Italic flag, bit 1 is Underline, bit 2 is Flash/Bold
 } scc_track_t;
 
 scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request_context);
@@ -70,51 +70,51 @@ enum scc_alignment
 
 enum scc_color_code
 {
-	COL_WHITE       = 0,
-	COL_GREEN       = 1,
-	COL_BLUE        = 2,
-	COL_CYAN        = 3,
-	COL_RED         = 4,
-	COL_YELLOW      = 5,
-	COL_MAGENTA     = 6,
-	COL_USERDEFINED = 7,
-	COL_BLACK       = 8,
-	COL_TRANSPARENT = 9
+    COL_WHITE       = 0,
+    COL_GREEN       = 1,
+    COL_BLUE        = 2,
+    COL_CYAN        = 3,
+    COL_RED         = 4,
+    COL_YELLOW      = 5,
+    COL_MAGENTA     = 6,
+    COL_USERDEFINED = 7,
+    COL_BLACK       = 8,
+    COL_TRANSPARENT = 9
 } scc_color_code_t;
 
 enum font_bits
 {
-	FONT_REGULAR                = 0,
-	FONT_ITALIC                 = 1,
-	FONT_UNDERLINED             = 2,
-	FONT_UNDERLINED_ITALIC      = 3,
-	FONT_BOLD                   = 4,
-	FONT_BOLD_ITALIC            = 5,
-	FONT_BOLD_UNDERLINED        = 6,
-	FONT_BOLD_UNDERLINED_ITALIC = 7
+    FONT_REGULAR                = 0,
+    FONT_ITALIC                 = 1,
+    FONT_UNDERLINED             = 2,
+    FONT_UNDERLINED_ITALIC      = 3,
+    FONT_BOLD                   = 4,
+    FONT_BOLD_ITALIC            = 5,
+    FONT_BOLD_UNDERLINED        = 6,
+    FONT_BOLD_UNDERLINED_ITALIC = 7
 };
 
 enum command_code
 {
-	COM_UNKNOWN = 0,
-	COM_ERASEDISPLAYEDMEMORY = 1,
-	COM_RESUMECAPTIONLOADING = 2,
-	COM_ENDOFCAPTION = 3,
-	COM_TABOFFSET1 = 4,
-	COM_TABOFFSET2 = 5,
-	COM_TABOFFSET3 = 6,
-	COM_ROLLUP2 = 7,
-	COM_ROLLUP3 = 8,
-	COM_ROLLUP4 = 9,
-	COM_CARRIAGERETURN = 10,
-	COM_ERASENONDISPLAYEDMEMORY = 11,
-	COM_BACKSPACE = 12,
-	COM_RESUMETEXTDISPLAY = 13,
-	COM_ALARMOFF =14,
-	COM_ALARMON = 15,
-	COM_DELETETOENDOFROW = 16,
-	COM_RESUMEDIRECTCAPTIONING = 17,
-	COM_FLASHON = 18
+    COM_UNKNOWN = 0,
+    COM_ERASEDISPLAYEDMEMORY = 1,
+    COM_RESUMECAPTIONLOADING = 2,
+    COM_ENDOFCAPTION = 3,
+    COM_TABOFFSET1 = 4,
+    COM_TABOFFSET2 = 5,
+    COM_TABOFFSET3 = 6,
+    COM_ROLLUP2 = 7,
+    COM_ROLLUP3 = 8,
+    COM_ROLLUP4 = 9,
+    COM_CARRIAGERETURN = 10,
+    COM_ERASENONDISPLAYEDMEMORY = 11,
+    COM_BACKSPACE = 12,
+    COM_RESUMETEXTDISPLAY = 13,
+    COM_ALARMOFF =14,
+    COM_ALARMON = 15,
+    COM_DELETETOENDOFROW = 16,
+    COM_RESUMEDIRECTCAPTIONING = 17,
+    COM_FLASHON = 18
 };
 
 #endif //__SCC_FORMAT_H__
