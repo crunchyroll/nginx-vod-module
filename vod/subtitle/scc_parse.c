@@ -44,32 +44,6 @@ static const unsigned char lowertab[] = {
     0xfd, 0xfe, 0xff
 };
 
-/*static int scc_strcasecmp(const char *s1, const char *s2)
-{
-    unsigned char a, b;
-
-    do {
-        a = lowertab[(unsigned char)*s1++];
-        b = lowertab[(unsigned char)*s2++];
-    } while (a && a == b);
-
-    return a - b;
-}
-
-
-static int scc_strncasecmp(const char *s1, const char *s2, size_t n)
-{
-    unsigned char a, b;
-    const char *last = s1 + n;
-
-    do {
-        a = lowertab[(unsigned char)*s1++];
-        b = lowertab[(unsigned char)*s2++];
-    } while (s1 < last && a && a == b);
-
-    return a - b;
-}*/
-
 static const int rowdata[] = {11,-1,1,2,3,4,12,13,14,15,5,6,7,8,9,10};
 // Relationship between the first PAC byte and the row number
 
@@ -160,15 +134,6 @@ static const char *color_text[MAX_COLOR][2]=
 	{"transparent",""}
 };
 #endif
-
-/*void scc_skip_spaces(char **str)
-{
-    char *p = *str;
-    while ((*p == ' ') || (*p == '\t'))
-        ++p;
-    *str = p;
-}*/
-
 //====================================================================================
 
 scc_event_t *get_writing_buffer(scc_track_t *track, request_context_t* request_context)
@@ -271,6 +236,7 @@ void handle_pac(unsigned char c1, unsigned char c2, scc_track_t *track, request_
         track->cursor_column        = new_cursor_col;
         track->current_color        = new_color;
         track->current_bk_color     = new_bk_color;
+        track->current_iub          = 0;
         event = new_event(track, request_context);
     }
 
@@ -477,6 +443,7 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 				track->cursor_column = SCC_608_SCREEN_WIDTH - 1;
 			break;
 		case COM_RESUMECAPTIONLOADING:
+		case COM_RESUMEDIRECTCAPTIONING:
 		    if (event != NULL && event->event_text_done == EVENT_TEXT_OPEN)
 		    {
 		        // close last event if not done
@@ -518,7 +485,6 @@ void handle_command(unsigned char c1, const unsigned char c2, scc_track_t *track
 		case COM_ALARMON:
 		case COM_RESUMETEXTDISPLAY:
 		case COM_ERASENONDISPLAYEDMEMORY:
-		case COM_RESUMEDIRECTCAPTIONING:
 			break;
 		default:
 			vod_log_error(VOD_LOG_ERR, request_context->log, 0, "Command not yet implemented.");
@@ -631,12 +597,16 @@ static int scc_process_line(scc_track_t *track, const char *str, request_context
         "line_time= %D, lengthstr=%d, str = %s", track->cue_time, length, str);
 #endif
 
-    for (i=0; i < length; i=i+5)
+
+    for (i=0; i < length; i+=4)
     {
         // code is still in ASCII text, need to convert every 2 consecutive chars to their equivalent hexadecimal digit
-        // TODO do we need to do this better?
         unsigned char hi, lo;
         unsigned int fullword;
+
+        // skip tabs and spaces
+        while ((*(str+i) == ' ') || (*(str+i) == '\t'))
+             i++;
 
         sscanf(str+i, "%x ", &fullword);
         hi = (fullword >> 8) & 0x7F; // Get rid of parity bit

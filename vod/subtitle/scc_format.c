@@ -277,7 +277,9 @@ static int convert_event_text(scc_event_t *event, char *textp, request_context_t
                         continue;
                     }
                     else if (colidx == SCC_608_SCREEN_WIDTH && event->characters[rowidx][colidx] == '\n')
+                    {
                         textp[dstidx++] = '\r';
+                    }
                     else if (event->characters[rowidx][colidx] == '<')
                     {   // Less than is unique in WebVTT
                         vod_memcpy(textp+dstidx, "&lt;", 4);
@@ -575,8 +577,15 @@ scc_parse_frames(
     {
         // scc_track was de-allocated already inside the function, for failure cases
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-            "scc_parse_frames: failed to parse memory into scc track");
+            "scc_parse_frames(): failed to parse memory into scc track");
         return VOD_BAD_MAPPING;
+    }
+    else if (scc_track->n_events < 1)
+    {
+        // File had no valid events
+        vod_log_error(VOD_LOG_ERR, request_context->log, 0,
+            "scc_parse_frames(): file empty or has no valid events");
+        return VOD_BAD_DATA;
     }
 #ifdef  SCC_TEMP_VERBOSITY
     else
@@ -763,10 +772,11 @@ scc_parse_frames(
         len = 2; vod_memcpy(p, "\r\n", len);                                    p+=len;
         // timestamps will be inserted here, we now insert positioning and alignment changes
         {
-            int kk, ll, pos=0, sizeH=0, line=14;
-            int max_num_of_chars_per_line = 0, lineidx_max_num_of_chars=line;
-            int slots_before_max_chars = 0, slots_after_max_chars = 0;
             unsigned char align;
+            int kk, ll, pos, sizeH=0, line=14;
+            int max_num_of_chars_per_line = 0,                    lineidx_max_num_of_chars=line;
+            int min_num_of_chars_per_line = SCC_608_SCREEN_WIDTH, lineidx_min_num_of_chars=line;
+            int slots_before_min_chars = 0, slots_after_min_chars = 0, slots_before_max_chars = 0, slots_after_max_chars = 0;
             for (kk=0; kk<15; kk++)
             {
                 if (cur_event->row_used[kk] == 1)
@@ -791,7 +801,19 @@ scc_parse_frames(
                         max_num_of_chars_per_line = num_of_chars;
                         lineidx_max_num_of_chars = kk;
                     }
+                    if (num_of_chars < min_num_of_chars_per_line)
+                    {
+                        min_num_of_chars_per_line = num_of_chars;
+                        lineidx_min_num_of_chars = kk;
+                    }
                 }
+            }
+            for (ll=0; ll<(SCC_608_SCREEN_WIDTH-1); ll++)
+            {
+                if (cur_event->characters[lineidx_min_num_of_chars][ll] == SCC_UNUSED_CHAR)
+                    slots_before_min_chars++;
+                else
+                    break;
             }
             for (ll=0; ll<(SCC_608_SCREEN_WIDTH-1); ll++)
             {
@@ -801,20 +823,21 @@ scc_parse_frames(
                     break;
             }
             sizeH = 3 * max_num_of_chars_per_line;
+            slots_after_min_chars = SCC_608_SCREEN_WIDTH - min_num_of_chars_per_line - slots_before_min_chars;
             slots_after_max_chars = SCC_608_SCREEN_WIDTH - max_num_of_chars_per_line - slots_before_max_chars;
 #ifdef  SCC_TEMP_VERBOSITY
             vod_log_error(VOD_LOG_ERR, request_context->log, 0,
             "event number %d, spaces_before=%d, max=%d, spaces_after=%d, lineidx=%d",
             evntcounter, slots_before_max_chars, max_num_of_chars_per_line, slots_after_max_chars, lineidx_max_num_of_chars);
 #endif
-            if ((slots_after_max_chars ==  slots_before_max_chars   ) ||
-                (slots_after_max_chars == (slots_before_max_chars+1)) ||
-                (slots_after_max_chars == (slots_before_max_chars-1)))
+            if ((slots_after_min_chars ==  slots_before_min_chars   ) ||
+                (slots_after_min_chars == (slots_before_min_chars+1)) ||
+                (slots_after_min_chars == (slots_before_min_chars-1)))
             {
                 align = SCC_ALIGN_CENTER;
                 pos = 50;
             }
-            else if (slots_after_max_chars > slots_before_max_chars)
+            else if (slots_after_min_chars > slots_before_min_chars)
             {
                 align = SCC_ALIGN_LEFT;
                 pos = 2 + (3 * slots_before_max_chars);
