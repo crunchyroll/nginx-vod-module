@@ -211,7 +211,7 @@ static const char* utf8_code[80] = {
     "\xe2\x94\x9b"  // Box bot right
 };
 
-void scc_swap_events(scc_event_t* nxt, scc_event_t* cur)
+static void scc_swap_events(scc_event_t* nxt, scc_event_t* cur)
 {
     scc_event_t tmp;
     vod_memcpy(&tmp,  nxt, sizeof(scc_event_t));
@@ -375,7 +375,7 @@ static int convert_event_text(scc_event_t *event, char *textp, request_context_t
     return dstidx;
 }
 
-void scc_free_track(vod_pool_t* pool, scc_track_t *track, request_context_t* request_context)
+static void scc_free_track(vod_pool_t* pool, scc_track_t *track, request_context_t* request_context)
 {
     free(track->events);
     return;
@@ -504,7 +504,7 @@ scc_parse(
     return ret_status;
 }
 
-static long long scale_sub_sec(long long time, int fps, request_context_t* request_context)
+static long long scale_sub_sec(long long time, int fps)
 {
     long long frames = time % 1000;
     long long frames_in_msec = frames * 1000 / fps;
@@ -632,7 +632,7 @@ scc_parse_frames(
     if (last_event != NULL && fps != 0)
     {
         // correct start_time depending on fps
-        last_event->start_time = scale_sub_sec(last_event->start_time, fps, request_context);
+        last_event->start_time = scale_sub_sec(last_event->start_time, fps);
         last_event->end_time = last_event->start_time + SCC_MAX_CUE_DURATION_MSEC;
     }
     for (evntcounter = scc_track->n_events - 1; evntcounter > 0 ; evntcounter--)
@@ -640,7 +640,7 @@ scc_parse_frames(
         scc_event_t*  next_event = scc_track->events + evntcounter;     // has times scaled already
                       cur_event  = scc_track->events + evntcounter - 1; // time not adjusted for start, no end calculated
 
-        cur_event->start_time = scale_sub_sec(cur_event->start_time, fps, request_context);
+        cur_event->start_time = scale_sub_sec(cur_event->start_time, fps);
 
         if (cur_event->start_time == next_event->start_time)
             // multiple events starting at the same exact time will have same duration (appear simultaneously on screen)

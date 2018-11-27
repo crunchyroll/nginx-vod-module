@@ -542,7 +542,7 @@ static int scc_process_line(scc_track_t *track, const char *str, request_context
     }
     str+=11;
 
-    // sub-second timing is stored in each event assuming is. Will be corrected while outputting cue, after whole file is parsed.
+    // sub-second timing is stored in each event as-is. Will be corrected while outputting cue, after whole file is parsed.
     track->cue_time = fr + (1000 * (sc + 60 * (mn + 60LL * hr)));
 
     if (track->max_duration < track->cue_time)
