@@ -10,9 +10,16 @@
 #define VALIGN_CENTER 8
 #define VALIGN_TOP 4
 
-#define SCC_608_SCREEN_WIDTH  32
+#define SCC_608_SCREEN_WIDTH          32
 #define SCC_NUM_OF_STYLES_INSERTED    10
-#define SCC_UNUSED_CHAR  0
+#define SCC_UNUSED_CHAR               0
+#define SCC_MAX_LONG_LONG             0xefffffffLL
+#define SCC_THRESH_LONG_LONG          (55*60*1000)
+
+#define SCC_MAX_CUE_DURATION_MSEC  3000
+#define SCC_MIN_CUE_DURATION_MSEC  1000
+#define SCC_MIN_INTER_CUE_DUR_MSEC  100
+
 
 // globals
 extern media_format_t scc_format;
@@ -46,6 +53,7 @@ typedef struct scc_event {
  */
 typedef struct scc_track {
     long long       max_duration;          // ms, added for needs of the vod-module
+    long long       initial_offset;        // ms, sometimes Broadcast shift the cues by some 59 minutes relative to video
     int             max_frame_count;       // to identify FPS without external information
 
     int             n_events;

@@ -26,10 +26,6 @@
 #define FIXED_WEBVTT_ESCAPE_FOR_RTL_STR "&lrm;"
 #define FIXED_WEBVTT_ESCAPE_FOR_RTL_WIDTH 5
 
-#define SCC_MAX_CUE_DURATION_MSEC  3000
-#define SCC_MIN_CUE_DURATION_MSEC  1000
-#define SCC_MIN_INTER_CUE_DUR_MSEC  100
-
 #define MAX_STR_SIZE_EVNT_CHUNK         1024
 #define MAX_STR_SIZE_ALL_WEBVTT_STYLES 20480
 
@@ -504,11 +500,11 @@ scc_parse(
     return ret_status;
 }
 
-static long long scale_sub_sec(long long time, int fps)
+static long long scale_sub_sec(long long time, long long offset, int fps)
 {
     long long frames = time % 1000;
     long long frames_in_msec = frames * 1000 / fps;
-    return (time - frames + frames_in_msec);
+    return (time + frames_in_msec - offset - frames);
 }
 /**
  * \brief Parse the .scc file, convert to webvtt, output all cues as frames
@@ -597,8 +593,8 @@ scc_parse_frames(
     else
     {
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-            "frames scc_parse_memory() succeeded, len of data = %d, max_frame = %d, max_duration = %D, nEvents = %d",
-            source->len, scc_track->max_duration, scc_track->max_frame_count, scc_track->n_events);
+            "frames scc_parse_memory() succeeded, len of data = %d, max_frame = %d, init_offset = %D, max_duration = %D, nEvents = %d",
+            source->len, scc_track->max_frame_count, scc_track->initial_offset, scc_track->max_duration, scc_track->n_events);
     }
 #endif
 
@@ -631,8 +627,8 @@ scc_parse_frames(
     scc_event_t*  last_event = scc_track->events + scc_track->n_events - 1;
     if (last_event != NULL && fps != 0)
     {
-        // correct start_time depending on fps
-        last_event->start_time = scale_sub_sec(last_event->start_time, fps);
+        // correct start_time depending on fps and initial offset
+        last_event->start_time = scale_sub_sec(last_event->start_time, scc_track->initial_offset, fps);
         last_event->end_time = last_event->start_time + SCC_MAX_CUE_DURATION_MSEC;
     }
     for (evntcounter = scc_track->n_events - 1; evntcounter > 0 ; evntcounter--)
@@ -640,7 +636,7 @@ scc_parse_frames(
         scc_event_t*  next_event = scc_track->events + evntcounter;     // has times scaled already
                       cur_event  = scc_track->events + evntcounter - 1; // time not adjusted for start, no end calculated
 
-        cur_event->start_time = scale_sub_sec(cur_event->start_time, fps);
+        cur_event->start_time = scale_sub_sec(cur_event->start_time, scc_track->initial_offset, fps);
 
         if (cur_event->start_time == next_event->start_time)
             // multiple events starting at the same exact time will have same duration (appear simultaneously on screen)

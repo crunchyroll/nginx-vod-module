@@ -545,8 +545,10 @@ static int scc_process_line(scc_track_t *track, const char *str, request_context
     // sub-second timing is stored in each event as-is. Will be corrected while outputting cue, after whole file is parsed.
     track->cue_time = fr + (1000 * (sc + 60 * (mn + 60LL * hr)));
 
-    if (track->max_duration < track->cue_time)
-        track->max_duration = track->cue_time;
+    if (track->max_duration    < track->cue_time)
+        track->max_duration    = track->cue_time;
+    if (track->initial_offset  > track->cue_time)
+        track->initial_offset  = track->cue_time;
     if (track->max_frame_count < fr)
         track->max_frame_count = fr;
 
@@ -646,6 +648,23 @@ static int scc_process_text(scc_track_t *track, char *str, request_context_t* re
             break;
         p = q;
     }
+
+    if (track->initial_offset == (long long)SCC_MAX_LONG_LONG)
+    { // no cues with valid timing
+        track->initial_offset = (long long)0x0LL;
+        track->max_duration   = (long long)0x0LL;
+    }
+    else if (track->initial_offset > (long long)SCC_THRESH_LONG_LONG)
+    { // lowest start_time is bigger than 55 minutes, we assume it is the one-hour shift used by some Broadcasters.
+        track->initial_offset = (track->initial_offset / 1000) * 1000; // we quantize to nearest second to make subtraction easier
+        track->max_duration   = (long long)track->max_duration - (long long)track->initial_offset + (long long)SCC_MAX_CUE_DURATION_MSEC;
+    }
+    else
+    {
+        track->initial_offset = 0x0LL;
+        track->max_duration = (long long)track->max_duration + (long long)SCC_MAX_CUE_DURATION_MSEC;
+    }
+
     return retval;
 }
 
@@ -653,7 +672,7 @@ static int scc_process_text(scc_track_t *track, char *str, request_context_t* re
 /* Allocates scc_track_t, assumes caller will free the returned pointer. Cleans up everything else allocated internally. */
 scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request_context)
 {
-    int bfailed;
+    int failed;
 	if (!data)
 	{
 		return NULL;
@@ -671,6 +690,7 @@ scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request
 
     // initializes all fields to zero. If that doesn't suit your need, use another track_init function.
     scc_track_t *track = vod_calloc(request_context->pool, sizeof(scc_track_t));
+    track->initial_offset = (long long) SCC_MAX_LONG_LONG;
     if (track == NULL)
     {
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
@@ -680,9 +700,9 @@ scc_track_t *scc_parse_memory(char *data, int length, request_context_t* request
     }
 
     // destructive parsing of pcopy
-    bfailed = scc_process_text(track, pcopy, request_context);
+    failed = scc_process_text(track, pcopy, request_context);
     vod_free(request_context->pool, pcopy);   // not needed anymore whether parsing succeeded or failed
-    if (bfailed == -1)
+    if (failed == -1)
     {
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
             "scc_parse_memory(): process_text failed");
