@@ -531,21 +531,24 @@ static int scc_process_line(scc_track_t *track, const char *str, request_context
     int hr, mn, sc, fr, i, length;
     //bool_t ndp = FALSE;
 
-    int res1 = sscanf(str, "%d:%d:%d:%d\t", &hr, &mn, &sc, &fr);
+    int res1 = sscanf(str, "%d:%d:%d:%d", &hr, &mn, &sc, &fr);
     if (res1 != 4)
     {
-        int res2 = sscanf(str, "%d:%d:%d;%d\t", &hr, &mn, &sc, &fr);
+        int res2 = sscanf(str, "%d:%d:%d;%d", &hr, &mn, &sc, &fr);
         if (res2 != 4)
             return 0;  // no timing at the start of the line, ignore this line altogether
         //else
             //ndp = TRUE;
     }
-    str+=12;
-    // TODO: use ndp to scale the fr field?
-    track->cue_time = (fr * 1000 / 30) + (1000 * (sc + 60 * (mn + 60LL * hr)));
+    str+=11;
 
-    if (track->maxDuration < track->cue_time)
-        track->maxDuration = track->cue_time;
+    // sub-second timing is stored in each event assuming is. Will be corrected while outputting cue, after whole file is parsed.
+    track->cue_time = fr + (1000 * (sc + 60 * (mn + 60LL * hr)));
+
+    if (track->max_duration < track->cue_time)
+        track->max_duration = track->cue_time;
+    if (track->max_frame_count < fr)
+        track->max_frame_count = fr;
 
 	length = vod_strlen(str);
 
@@ -597,8 +600,6 @@ static int scc_process_line(scc_track_t *track, const char *str, request_context
             track->last_c1 = -1;
             track->last_c2 = -1;
 
-            //vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-            //" GOING to handle 2 characters: %d %d, i=%d", hi, lo, i);
             if (hi>=0x20) // Standard characters (always in pairs)
             {
                 handle_single(hi, track, request_context);

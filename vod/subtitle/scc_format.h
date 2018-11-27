@@ -29,7 +29,7 @@ enum cc_text_done
  */
 typedef struct scc_event {
     unsigned char      characters[15][33]; // Extra char at the end for potential '\n'
-    unsigned char      iub       [15][33]; // RMS bit is Italic flag, bit 1 is Underline, bit 2 is Flash/Bold
+    unsigned char      iub       [15][33]; // Right-most bit is Italic flag, bit 1 is Underline, bit 2 is Flash/Bold
              char      row_used  [15];     // Any data in row?
     unsigned char      color;
     unsigned char      bk_color;
@@ -45,7 +45,8 @@ typedef struct scc_event {
  * It is entirely parsed before events are rendered into WebVTT cues.
  */
 typedef struct scc_track {
-    long long       maxDuration;          // ms, added for needs of the vod-module
+    long long       max_duration;          // ms, added for needs of the vod-module
+    int             max_frame_count;       // to identify FPS without external information
 
     int             n_events;
     int             max_events;

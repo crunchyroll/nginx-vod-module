@@ -490,20 +490,26 @@ scc_parse(
         parse_params,
         source,
         NULL,
-        (uint64_t)(scc_track->maxDuration),
+        (uint64_t)(scc_track->max_duration),
         metadata_part_count,
         result);
 
 #ifdef  SCC_TEMP_VERBOSITY
     vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-        "scc_parse(): scc_parse_memory() succeeded, sub_parse succeeded, len of data = %d, maxDuration = %D, nEvents = %d, ret_status=%d",
-        source->len, scc_track->maxDuration, scc_track->n_events, ret_status);
+        "scc_parse(): scc_parse_memory() succeeded: len of data = %d, max_duration = %D, max_frame = %d, nEvents = %d, ret_status=%d",
+        source->len, scc_track->max_duration, scc_track->max_frame_count, scc_track->n_events, ret_status);
 #endif
-    // now that we used maxDuration, we need to free the memory used by the track
+    // now that we used max_duration, we need to free the memory used by the track
     scc_free_track(request_context->pool, scc_track, request_context);
     return ret_status;
 }
 
+static long long scale_sub_sec(long long time, int fps, request_context_t* request_context)
+{
+    long long frames = time % 1000;
+    long long frames_in_msec = frames * 1000 / fps;
+    return (time - frames + frames_in_msec);
+}
 /**
  * \brief Parse the .scc file, convert to webvtt, output all cues as frames
  * In the following function event == frame == cue. All words point to the text in SCC/media-struct/WebVTT.
@@ -591,8 +597,8 @@ scc_parse_frames(
     else
     {
         vod_log_error(VOD_LOG_ERR, request_context->log, 0,
-            "frames scc_parse_memory() succeeded, len of data = %d, maxDuration = %D, nEvents = %d",
-            source->len, scc_track->maxDuration, scc_track->n_events);
+            "frames scc_parse_memory() succeeded, len of data = %d, max_frame = %d, max_duration = %D, nEvents = %d",
+            source->len, scc_track->max_duration, scc_track->max_frame_count, scc_track->n_events);
     }
 #endif
 
@@ -614,26 +620,44 @@ scc_parse_frames(
             }
         }
     }
+
+    int  fps = (scc_track->max_frame_count < 24) ? 24 :
+               (scc_track->max_frame_count < 30) ? 30 :
+               (scc_track->max_frame_count < 60) ? 60 :
+               (scc_track->max_frame_count + 1);      // inaccurate sub-second times, just to avoid overflow
+
     // set the end_time of each event depending on next event's start_time, capping to 3 seconds.
-    // Set duation of last event in the file to 3 seconds for any input file.
+    // Set duration of last event in the file to 3 seconds for any input file.
     scc_event_t*  last_event = scc_track->events + scc_track->n_events - 1;
-    if (last_event != NULL)
+    if (last_event != NULL && fps != 0)
+    {
+        // correct start_time depending on fps
+        last_event->start_time = scale_sub_sec(last_event->start_time, fps, request_context);
         last_event->end_time = last_event->start_time + SCC_MAX_CUE_DURATION_MSEC;
+    }
     for (evntcounter = scc_track->n_events - 1; evntcounter > 0 ; evntcounter--)
     {
-        scc_event_t*  next_event = scc_track->events + evntcounter;
-                      cur_event  = scc_track->events + evntcounter - 1;
+        scc_event_t*  next_event = scc_track->events + evntcounter;     // has times scaled already
+                      cur_event  = scc_track->events + evntcounter - 1; // time not adjusted for start, no end calculated
+
+        cur_event->start_time = scale_sub_sec(cur_event->start_time, fps, request_context);
+
         if (cur_event->start_time == next_event->start_time)
+            // multiple events starting at the same exact time will have same duration (appear simultaneously on screen)
             cur_event->end_time = next_event->end_time;
         else
         {
             // duration is capped to no less than 1 sec, no more than 3 seconds
             // we should cap it to no less than some value
-            int64_t expected_end = next_event->start_time - SCC_MIN_INTER_CUE_DUR_MSEC;
-            if (expected_end < SCC_MIN_CUE_DURATION_MSEC)
-                expected_end = SCC_MIN_CUE_DURATION_MSEC;
-            int64_t capped_end   = cur_event->start_time  + SCC_MAX_CUE_DURATION_MSEC;
-            cur_event->end_time  = (expected_end < capped_end) ? expected_end : capped_end;
+            long long expected_end = next_event->start_time - SCC_MIN_INTER_CUE_DUR_MSEC;
+            if (expected_end < (cur_event->start_time + SCC_MIN_CUE_DURATION_MSEC))
+                expected_end = (cur_event->start_time + SCC_MIN_CUE_DURATION_MSEC);
+            if (expected_end > (cur_event->start_time + SCC_MAX_CUE_DURATION_MSEC))
+                expected_end = (cur_event->start_time + SCC_MAX_CUE_DURATION_MSEC);
+
+            cur_event->end_time  = (expected_end > SCC_MIN_CUE_DURATION_MSEC)
+                                 ? expected_end
+                                 : SCC_MIN_CUE_DURATION_MSEC;
         }
     }
 
