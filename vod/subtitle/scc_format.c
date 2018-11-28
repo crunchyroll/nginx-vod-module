@@ -609,7 +609,9 @@ scc_parse_frames(
         {
             scc_event_t*   next_event = scc_track->events + jj + 1;
                            cur_event  = scc_track->events + jj;
-            if (cur_event->start_time > next_event->start_time)
+            // We use >= instead of > so simultaneous events get ordered first-in last-out
+            // so WebVTT would move the earlier cues up instead of the newer cues.
+            if (cur_event->start_time >= next_event->start_time)
             {
                 //  Swap the two events
                 scc_swap_events(next_event, cur_event);

@@ -16,9 +16,9 @@
 #define SCC_MAX_LONG_LONG             0xefffffffLL
 #define SCC_THRESH_LONG_LONG          (55*60*1000)
 
-#define SCC_MAX_CUE_DURATION_MSEC  3000
-#define SCC_MIN_CUE_DURATION_MSEC  1000
-#define SCC_MIN_INTER_CUE_DUR_MSEC  100
+#define SCC_MAX_CUE_DURATION_MSEC     3000
+#define SCC_MIN_CUE_DURATION_MSEC     1000
+#define SCC_MIN_INTER_CUE_DUR_MSEC    100
 
 
 // globals

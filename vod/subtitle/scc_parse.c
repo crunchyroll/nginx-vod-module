@@ -649,20 +649,20 @@ static int scc_process_text(scc_track_t *track, char *str, request_context_t* re
         p = q;
     }
 
-    if (track->initial_offset == (long long)SCC_MAX_LONG_LONG)
+    if (track->initial_offset == SCC_MAX_LONG_LONG)
     { // no cues with valid timing
-        track->initial_offset = (long long)0x0LL;
-        track->max_duration   = (long long)0x0LL;
+        track->initial_offset = 0x0LL;
+        track->max_duration   = 0x0LL;
     }
-    else if (track->initial_offset > (long long)SCC_THRESH_LONG_LONG)
+    else if (track->initial_offset > SCC_THRESH_LONG_LONG)
     { // lowest start_time is bigger than 55 minutes, we assume it is the one-hour shift used by some Broadcasters.
         track->initial_offset = (track->initial_offset / 1000) * 1000; // we quantize to nearest second to make subtraction easier
-        track->max_duration   = (long long)track->max_duration - (long long)track->initial_offset + (long long)SCC_MAX_CUE_DURATION_MSEC;
+        track->max_duration   = track->max_duration - track->initial_offset + SCC_MAX_CUE_DURATION_MSEC;
     }
     else
     {
         track->initial_offset = 0x0LL;
-        track->max_duration = (long long)track->max_duration + (long long)SCC_MAX_CUE_DURATION_MSEC;
+        track->max_duration = track->max_duration + SCC_MAX_CUE_DURATION_MSEC;
     }
 
     return retval;
