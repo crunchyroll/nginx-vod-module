@@ -500,11 +500,14 @@ scc_parse(
     return ret_status;
 }
 
+// correct start_time depending on fps and initial offset, then add SCC_OFFSET_FOR_SHORTER_LEAD
 static long long scale_sub_sec(long long time, long long offset, int fps)
 {
-    long long frames = time % 1000;
-    long long frames_in_msec = frames * 1000 / fps;
-    return (time + frames_in_msec - offset - frames);
+    if (fps <= 0)
+        return time;
+    long long frame_count = time % 1000;
+    long long frames_in_msec = frame_count * 1000 / fps;
+    return (time + frames_in_msec - offset - frame_count + SCC_OFFSET_FOR_SHORTER_LEAD);
 }
 /**
  * \brief Parse the .scc file, convert to webvtt, output all cues as frames
@@ -629,7 +632,7 @@ scc_parse_frames(
     scc_event_t*  last_event = scc_track->events + scc_track->n_events - 1;
     if (last_event != NULL && fps != 0)
     {
-        // correct start_time depending on fps and initial offset
+        // correct start_time depending on fps and initial offset, then add one second
         last_event->start_time = scale_sub_sec(last_event->start_time, scc_track->initial_offset, fps);
         last_event->end_time = last_event->start_time + SCC_MAX_CUE_DURATION_MSEC;
     }
