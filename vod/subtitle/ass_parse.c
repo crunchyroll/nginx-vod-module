@@ -726,10 +726,10 @@ static void set_default_style(ass_style_t *style, bool_t alloc_names)
 		style->font_name		= strdup("Arial");
 	}
 	style->font_size			= 18;
-	style->primary_colour		= 0xffffff00;
+	style->primary_colour		= 0x00ffffff;
 	style->secondary_colour		= 0x00ffff00;
 	style->outline_colour		= 0x00000000;
-	style->back_colour			= 0x00000080;
+	style->back_colour			= 0x80000000;
 	style->bold					= FALSE;
 	style->italic				= FALSE;
 	style->underline			= FALSE;
