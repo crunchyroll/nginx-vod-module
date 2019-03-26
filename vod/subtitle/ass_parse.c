@@ -885,6 +885,7 @@ static int process_style(ass_track_t *track, char *str, request_context_t* reque
 		*/
 		}
 	}
+
 	if (strcmp(style->name, "Default") == 0)
 		track->default_style = sid;
 	// SSA uses BackColour for both outline and shadow

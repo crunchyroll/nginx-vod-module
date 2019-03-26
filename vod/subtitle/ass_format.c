@@ -29,7 +29,7 @@ PAIROF(HEADER,	NEWLINES,	10,	WEBVTT_HEADER_NEWLINES)
 
 
 // STYLE_SUPPORT will insert dynamic styles with the names used in the ASS/SSA file
-// CSS_SUPPORT will use static style classes defined in crstyles.css
+// CSS_SUPPORT will use static style classes defined in ./css/crstyles.css
 // They are mutually exclusive
 #ifdef ASSUME_STYLE_SUPPORT
 PAIROF(STYLE, 	START, 		22,	"STYLE\r\n::cue(v[voice=\"")
