@@ -262,7 +262,7 @@ static media_format_t* media_formats[] = {
 #endif // NGX_HAVE_LIBXML2
 	&cap_format,
 	&ass_format,
-    &scc_format,
+	&scc_format,
 	NULL
 };
 
