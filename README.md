@@ -31,6 +31,7 @@
   2. SRT
   3. DFXP/TTML
   4. CAP (Cheetah)
+  5. ASS/SSA (Advanced SubStation Alpha)
   
   Output:
   1. DASH - either a single WebVTT or SMPTE-TT segments (configurable)
@@ -77,6 +78,20 @@ without the overhead of short segments for the whole duration of the video
 * I-frames playlist generation is not supported when encryption is enabled
 
 * Tested on Linux only
+
+#### Support for ASS/SSA captions/subtitle inputs
+
+* Tested only with HLS segmented output.
+
+* Supports only UTF-8 input scripts. Limited error-handling, so it will fail on invalid scripts.
+
+* No support for non-standard `[Fonts]` defined in script, nor to `[Graphics]`, nor to `[Pictures]`.
+
+* No support for Karoake features, moving or angular text.
+
+* WebVTT Styles are currently disabled by a #define, till browsers catch up.
+When enabled, they are applied per cue using a voice span.
+Only Styles used by current segment duration are added to the segment.
 
 ### Compilation
 

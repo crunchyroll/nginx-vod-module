@@ -333,8 +333,10 @@ VOD_DEPS="$VOD_DEPS                                           \
           $ngx_addon_dir/vod/mp4/mp4_parser_base.h            \
           $ngx_addon_dir/vod/mp4/mp4_write_stream.h           \
           $ngx_addon_dir/vod/mss/mss_packager.h               \
+          $ngx_addon_dir/vod/subtitle/ass_format.h            \
           $ngx_addon_dir/vod/subtitle/cap_format.h            \
           $ngx_addon_dir/vod/subtitle/dfxp_format.h           \
+          $ngx_addon_dir/vod/subtitle/scc_format.h            \
           $ngx_addon_dir/vod/subtitle/subtitle_format.h       \
           $ngx_addon_dir/vod/subtitle/ttml_builder.h          \
           $ngx_addon_dir/vod/subtitle/webvtt_builder.h        \
@@ -412,7 +414,11 @@ VOD_SRCS="$VOD_SRCS                                           \
           $ngx_addon_dir/vod/mp4/mp4_parser.c                 \
           $ngx_addon_dir/vod/mp4/mp4_parser_base.c            \
           $ngx_addon_dir/vod/mss/mss_packager.c               \
+          $ngx_addon_dir/vod/subtitle/ass_format.c            \
+          $ngx_addon_dir/vod/subtitle/ass_parse.c             \
           $ngx_addon_dir/vod/subtitle/cap_format.c            \
+          $ngx_addon_dir/vod/subtitle/scc_format.c            \
+          $ngx_addon_dir/vod/subtitle/scc_parse.c             \
           $ngx_addon_dir/vod/subtitle/subtitle_format.c       \
           $ngx_addon_dir/vod/subtitle/ttml_builder.c          \
           $ngx_addon_dir/vod/subtitle/webvtt_builder.c        \
