@@ -8,7 +8,6 @@ before_install:
 language: c
 compiler:
     - clang
-    - gcc
 dist: focal
 env:
   - NGX_VOD_MODULE=--add-module=./nginx-vod-module
