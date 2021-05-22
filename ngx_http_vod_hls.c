@@ -171,7 +171,7 @@ ngx_http_vod_hls_init_encryption_params(
 		encryption_params->key = sequence->encryption_key;
 	}
 
-	if (container_format != HLS_CONTAINER_FMP4 || encryption_params->type != HLS_ENC_AES_128)
+	//if (container_format != HLS_CONTAINER_FMP4 || encryption_params->type != HLS_ENC_AES_128)
 	{
 		ngx_http_vod_hls_init_encryption_iv(
 			encryption_params->iv_buf,
